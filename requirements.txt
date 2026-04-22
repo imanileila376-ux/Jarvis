@@ -4,9 +4,3 @@ requests
 beautifulsoup4
 schedule
 groq
-edge-tts
-pygame
-SpeechRecognition
-pyaudio
-pywhatkit
-yagmail
