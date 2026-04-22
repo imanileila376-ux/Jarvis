@@ -4,315 +4,143 @@ import os
 import time
 import threading
 import schedule
+import yagmail
 from datetime import datetime
 from litellm import completion
 from tools.basic_tools import TOOLS, TOOL_FUNCTIONS
 from tools.web_tools import WEB_TOOLS, WEB_TOOL_FUNCTIONS
-from memory_store import remember_fact, get_memory_summary
 
 # ────────────────────────────────────────────────────────────────
-# SETUP
+# SETUP & CONTACTS
 # ────────────────────────────────────────────────────────────────
-
 ALL_TOOLS = TOOLS + WEB_TOOLS
 ALL_FUNCTIONS = {**TOOL_FUNCTIONS, **WEB_TOOL_FUNCTIONS}
 
 WHATSAPP = "+254118240486"
-EMAIL = "elizabethnzasi530@gmail.com"
-COMPANY = "Digital Growth Agency"
-WEBSITE = "www.digitalgrowth.com"
+EMAIL_USER = os.environ.get("EMAIL_USER", "elizabethnzasi530@gmail.com")
+EMAIL_PASS = os.environ.get("EMAIL_PASS", "") # Set this in Railway Variables
 USER_NAME = "Dan"
 
 # ────────────────────────────────────────────────────────────────
-# CONFIG
+# EMAIL ENGINE
 # ────────────────────────────────────────────────────────────────
+def send_auto_email(to_email, business_name, pitch):
+    if not EMAIL_PASS:
+        print("❌ Email failed: EMAIL_PASS variable not set in Railway.")
+        return
+    try:
+        yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
+        subject = f"Growth Strategy for {business_name} - Digital Growth Agency"
+        
+        # Professional HTML wrapper
+        content = [
+            f"<h2>Hello {business_name} team,</h2>",
+            pitch.replace("\n", "<br>"),
+            "<br><br>Best regards,<br>",
+            "<strong>Dan</strong><br>Managing Partner<br>Digital Growth Agency",
+            f"<br>WhatsApp: {WHATSAPP}"
+        ]
+        
+        yag.send(to=to_email, subject=subject, contents=content)
+        print(f"📧 EMAIL SENT TO: {to_email}")
+    except Exception as e:
+        print(f"❌ Email error: {e}")
 
+# ────────────────────────────────────────────────────────────────
+# CONFIG & CHAT
+# ────────────────────────────────────────────────────────────────
 def load_config():
     return {
         "llm": {
-            "model": os.environ.get(
-                "MODEL", "groq/llama-3.3-70b-versatile"
-            ),
+            "model": os.environ.get("MODEL", "groq/llama-3.3-70b-versatile"),
             "api_key": os.environ.get("GROQ_API_KEY", ""),
-            "temperature": 0.85,
-            "max_tokens": 1200,
-        },
-        "agent": {
-            "name": "Jarvis",
-            "system_prompt": os.environ.get(
-                "SYSTEM_PROMPT",
-                "You are Jarvis, an elite AI sales agent for Dan."
-            )
+            "temperature": 0.8,
+            "max_tokens": 1000
         }
     }
 
-# ────────────────────────────────────────────────────────────────
-# CHAT
-# ────────────────────────────────────────────────────────────────
-
-def chat(messages: list, config: dict) -> str:
+def ask_jarvis(messages, config):
     try:
         response = completion(
             model=config["llm"]["model"],
             messages=messages,
             api_key=config["llm"]["api_key"],
             temperature=config["llm"]["temperature"],
-            max_tokens=config["llm"]["max_tokens"],
+            max_tokens=config["llm"]["max_tokens"]
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"Error: {e}"
+        return str(e)
 
 # ────────────────────────────────────────────────────────────────
-# AUTO HUNT
+# AUTO HUNT & EMAIL
 # ────────────────────────────────────────────────────────────────
-
-def auto_hunt(
-    business_type: str,
-    location: str,
-    country: str,
-    config: dict
-) -> str:
-    print(f"""
-=====================================
-AUTO HUNT
-Target:   {business_type}
-Location: {location}, {country}
-Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
-=====================================
-    """)
-
+def auto_hunt(business_type, location, country, config):
+    print(f"\n🎯 Hunting {business_type} in {location}...")
+    
+    # 1. Search for businesses
+    raw_results = ALL_FUNCTIONS["find_businesses"](business_type, location, country)
+    
+    # 2. Extract Data using AI
+    extraction_prompt = [
+        {"role": "system", "content": "Extract business names and emails from this text. Return ONLY a JSON list of objects: [{'name': '...', 'email': '...'}]"},
+        {"role": "user", "content": raw_results}
+    ]
+    
+    extracted_json = ask_jarvis(extraction_prompt, config)
+    
     try:
-        businesses = ALL_FUNCTIONS["find_businesses"](
-            business_type=business_type,
-            location=location,
-            country=country
-        )
+        leads = json.loads(extracted_json)
+    except:
+        print("⚠️ Could not extract clean email list. Skipping auto-email.")
+        return
 
-        price_report = ALL_FUNCTIONS["calculate_price"](
-            country=country,
-            city=location,
-            business_type=business_type,
-            size="medium"
-        )
-
-        roi_report = ALL_FUNCTIONS["calculate_roi"](
-            country=country,
-            revenue_per_client=1000,
-            expected_new_clients=5,
-            website_cost=2000
-        )
-
-        pitch_messages = [
-            {
-                "role": "system",
-                "content": f"""You are Jarvis an elite sales agent.
-Write sharp professional USA sales pitches.
-Use each business name specifically.
-Price is exactly $2000 for Growth package.
-Include WhatsApp {WHATSAPP} Email {EMAIL}.
-Under 150 words per pitch.
-Sound like a top closer."""
-            },
-            {
-                "role": "user",
-                "content": f"""Write pitches for:
-{businesses}
-Pricing: {price_report}
-ROI: {roi_report}
-One pitch per business.
-Sharp professional USA style."""
-            }
-        ]
-
-        pitches = chat(pitch_messages, config)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = (
-            f"hunt_{business_type}_{location}_{timestamp}.txt"
-            .replace(" ", "_")
-        )
-
-        report = f"""
-AUTO HUNT REPORT
-================
-Company:  {COMPANY}
-WhatsApp: {WHATSAPP}
-Email:    {EMAIL}
-Date:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
-Target:   {business_type}
-Location: {location}, {country}
-
-BUSINESSES FOUND:
-{businesses}
-
-PRICING:
-{price_report}
-
-ROI:
-{roi_report}
-
-PITCHES:
-{pitches}
-        """
-
-        ALL_FUNCTIONS["write_file"](
-            filename=filename,
-            content=report
-        )
-
-        ALL_FUNCTIONS["save_lead"](
-            business_name=f"{business_type} - {location}",
-            contact=f"Email: {EMAIL}",
-            location=location,
-            country=country,
-            deal_value="$2,000",
-            status="New"
-        )
-
-        print(f"✅ Hunt complete. Saved to {filename}")
-        return pitches
-
-    except Exception as e:
-        print(f"❌ Hunt error: {e}")
-        return f"Error: {e}"
-
-# ────────────────────────────────────────────────────────────────
-# SCHEDULED TASKS
-# ────────────────────────────────────────────────────────────────
-
-def morning_hunt(config):
-    print("\n⏰ MORNING USA HUNT STARTING...\n")
-
-    targets = [
-        ("law firms", "New York", "USA"),
-        ("dental clinics", "Los Angeles", "USA"),
-        ("real estate agents", "Chicago", "USA"),
-        ("restaurants", "Miami", "USA"),
-        ("gyms", "Houston", "USA"),
-        ("medical clinics", "Boston", "USA"),
-        ("hvac companies", "Dallas", "USA"),
-        ("solar installers", "Seattle", "USA"),
-    ]
-
-    for business, city, country in targets:
-        print(f"\n🎯 Hunting {business} in {city}...")
-        auto_hunt(business, city, country, config)
-        time.sleep(5)
-
-    print("\n✅ Morning hunt complete!")
-
-def evening_report(config):
-    print("\n⏰ EVENING REPORT...\n")
-
-    leads = ALL_FUNCTIONS["view_leads"]()
-    files = [
-        f for f in os.listdir(".")
-        if f.endswith(".txt")
-    ]
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are Jarvis. Give Dan a sharp evening report."
-        },
-        {
-            "role": "user",
-            "content": f"""
-Evening report for Dan.
-Leads: {leads}
-Files created: {len(files)}
-Give:
-1. What was accomplished
-2. Top 3 priorities tomorrow
-3. Motivating line
-Under 100 words.
-            """
-        }
-    ]
-
-    report = chat(messages, config)
-    print(f"\nEVENING REPORT:\n{report}\n")
-
-    ALL_FUNCTIONS["write_file"](
-        filename=f"report_{datetime.now().strftime('%Y%m%d')}.txt",
-        content=report
-    )
-
-def midday_followup(config):
-    print("\n⏰ MIDDAY FOLLOW-UP...\n")
-
-    leads = ALL_FUNCTIONS["view_leads"]()
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are Jarvis. Be sharp and brief."
-        },
-        {
-            "role": "user",
-            "content": f"""
-Dan's leads: {leads}
-Write a midday USA follow up reminder.
-Under 50 words.
-            """
-        }
-    ]
-
-    reminder = chat(messages, config)
-    print(f"\nMIDDAY REMINDER:\n{reminder}\n")
+    # 3. Process each lead
+    for lead in leads:
+        name = lead.get('name', 'Business Owner')
+        email = lead.get('email')
+        
+        if email and "@" in email:
+            # Generate a killer $2,000 pitch
+            pitch_prompt = [
+                {"role": "system", "content": "You are JARVIS. Write a sharp, 3-sentence email pitch for a $2,000 website automation system. ROI focused."},
+                {"role": "user", "content": f"Business Name: {name}"}
+            ]
+            pitch = ask_jarvis(pitch_prompt, config)
+            
+            # SEND IT!
+            send_auto_email(email, name, pitch)
+            
+            # Save to Database
+            ALL_FUNCTIONS["save_lead"](name, email, location, country, "$2,000", "Email Sent")
+        else:
+            # Just save as lead if no email found
+            ALL_FUNCTIONS["save_lead"](name, "No Email Found", location, country, "$2,000", "Manual Check Needed")
 
 # ────────────────────────────────────────────────────────────────
 # SCHEDULER
 # ────────────────────────────────────────────────────────────────
-
 def start_scheduler(config):
-    print("""
-====================================
-JARVIS CLOUD SCHEDULER ACTIVE
-====================================
-Morning Hunt:    08:00 AM daily
-Midday Followup: 12:00 PM daily
-Evening Report:  07:00 PM daily
-====================================
-    """)
+    # Morning Hunt at 8 AM
+    schedule.every().day.at("08:00").do(auto_hunt, "law firms", "New York", "USA", config)
+    schedule.every().day.at("08:30").do(auto_hunt, "dental clinics", "Los Angeles", "USA", config)
 
-    schedule.every().day.at("08:00").do(
-        morning_hunt, config=config
-    )
-    schedule.every().day.at("12:00").do(
-        midday_followup, config=config
-    )
-    schedule.every().day.at("19:00").do(
-        evening_report, config=config
-    )
-
+    print("⏰ Cloud Scheduler Active. Standing by...")
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# ────────────────────────────────────────────────────────────────
-# MAIN
-# ────────────────────────────────────────────────────────────────
-
 def main():
     config = load_config()
+    if not config["llm"]["api_key"]:
+        print("❌ Error: GROQ_API_KEY not found.")
+        return
 
-    print(f"""
-====================================
-  J.A.R.V.I.S CLOUD
-  Elite Core Online for {USER_NAME}
-  Model: {config['llm']['model']}
-  Market: USA PRIMARY
-  Mode: 24/7 Autonomous
-====================================
-    """)
-
-    # Run morning hunt immediately on startup
-    print("🚀 Running initial hunt on startup...")
-    morning_hunt(config)
-
-    # Start scheduler
+    print("🚀 JARVIS CLOUD EMAILER ONLINE")
+    
+    # Run one hunt immediately on startup for testing
+    auto_hunt("real estate agents", "Miami", "USA", config)
+    
     start_scheduler(config)
 
 if __name__ == "__main__":
