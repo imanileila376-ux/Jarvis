@@ -3,8 +3,10 @@ pyyaml
 requests
 beautifulsoup4
 schedule
+groq
 edge-tts
 pygame
 SpeechRecognition
 pyaudio
-groq
+pywhatkit
+yagmail
