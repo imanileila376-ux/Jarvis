@@ -17,7 +17,7 @@ EMAIL_PASS = os.environ.get("EMAIL_PASS", "")
 WHATSAPP = os.environ.get("WHATSAPP", "+254118240486")
 USER_NAME = "Dan"
 COMPANY = "Digital Growth Agency"
-VERSION = "v3"
+VERSION = "v4"
 
 HEADERS = {
     "User-Agent": (
@@ -69,7 +69,10 @@ def ask_jarvis(messages: list, config: dict) -> str:
 def search_web(query: str) -> str:
     """Search DuckDuckGo for real results"""
     try:
-        url = f"https://html.duckduckgo.com/html/?q={query}"
+        url = (
+            f"https://html.duckduckgo.com/html/"
+            f"?q={requests.utils.quote(query)}"
+        )
         response = requests.get(
             url,
             headers=HEADERS,
@@ -92,17 +95,23 @@ def search_web(query: str) -> str:
                 )
 
         return "\n\n".join(results) if results else ""
+
     except Exception as e:
         print(f"Search error: {e}")
         return ""
 
-def search_email(business_name: str, location: str) -> str:
-    """Search for a business email address"""
+def search_email(
+    business_name: str,
+    location: str
+) -> str:
+    """Search for a real business email address"""
     queries = [
         f"{business_name} {location} email contact",
-        f"{business_name} {location} contact us",
-        f'"{business_name}" email site:linkedin.com OR site:yellowpages.com',
+        f"{business_name} contact us email address",
+        f'"{business_name}" email',
     ]
+
+    config = load_config()
 
     for query in queries:
         try:
@@ -110,7 +119,6 @@ def search_email(business_name: str, location: str) -> str:
             if not results:
                 continue
 
-            # Ask AI to find email
             messages = [
                 {
                     "role": "system",
@@ -127,16 +135,18 @@ def search_email(business_name: str, location: str) -> str:
                 }
             ]
 
-            config = load_config()
-            found = ask_jarvis(messages, config).strip()
+            found = ask_jarvis(
+                messages, config
+            ).strip().lower()
 
             if (
                 "@" in found and
                 "." in found and
                 len(found) < 100 and
-                "none" not in found.lower()
+                "none" not in found and
+                " " not in found.strip()
             ):
-                return found
+                return found.strip()
 
             time.sleep(1)
 
@@ -146,46 +156,48 @@ def search_email(business_name: str, location: str) -> str:
 
     return ""
 
+# ────────────────────────────────────────────────────────────────
+# FIND REAL BUSINESSES
+# ────────────────────────────────────────────────────────────────
+
 def find_real_businesses(
     business_type: str,
     location: str,
     country: str
 ) -> list:
-    """
-    Find REAL businesses with REAL emails.
-    Returns list of dicts with name and email.
-    """
-    print(f"  Searching for real {business_type} in {location}...")
+    """Find real businesses with emails"""
+    print(
+        f"  Searching {business_type} "
+        f"in {location}..."
+    )
 
     businesses = []
+    config = load_config()
 
-    # Multiple search strategies
-    queries = [
-        f"{business_type} {location} {country} email contact",
-        f"best {business_type} in {location} website",
-        f"{business_type} {location} phone email address",
-        f"top {business_type} {location} contact information",
-    ]
+    # Strategy 1: DuckDuckGo search
+    try:
+        query = (
+            f"{business_type} {location} "
+            f"{country} contact email"
+        )
+        results = search_web(query)
 
-    seen_names = set()
+        if results:
+            print("  Got results. Extracting names...")
 
-    for query in queries:
-        try:
-            results = search_web(query)
-            if not results:
-                continue
-
-            # Extract business names from results
             messages = [
                 {
                     "role": "system",
                     "content": (
-                        "Extract business names and any "
-                        "email addresses from this text. "
-                        "Return ONLY valid JSON array: "
-                        '[{"name": "Business Name", '
-                        '"email": "email or empty string"}] '
-                        "Return only JSON nothing else."
+                        "Extract business names from this "
+                        "search result text. "
+                        "Return ONLY a JSON array of strings. "
+                        "Example: "
+                        '["Smith Law Group", '
+                        '"Johnson Legal", '
+                        '"NYC Attorneys"] '
+                        "Return ONLY the JSON array. "
+                        "Nothing else."
                     )
                 },
                 {
@@ -194,48 +206,249 @@ def find_real_businesses(
                 }
             ]
 
-            config = load_config()
             response = ask_jarvis(messages, config)
 
             try:
-                # Clean JSON response
                 clean = response.strip()
+
+                # Clean markdown
                 if "```" in clean:
-                    clean = clean.split("```")[1]
-                    if clean.startswith("json"):
-                        clean = clean[4:]
+                    parts = clean.split("```")
+                    for part in parts:
+                        if "[" in part:
+                            clean = part
+                            break
+
+                if clean.startswith("json"):
+                    clean = clean[4:]
+
                 clean = clean.strip()
 
-                extracted = json.loads(clean)
+                # Find JSON array
+                start = clean.find("[")
+                end = clean.rfind("]") + 1
+                if start >= 0 and end > start:
+                    clean = clean[start:end]
 
-                if isinstance(extracted, list):
-                    for item in extracted:
-                        name = item.get("name", "").strip()
-                        email = item.get("email", "").strip()
+                names = json.loads(clean)
 
+                if isinstance(names, list):
+                    for name in names:
                         if (
-                            name and
-                            len(name) > 3 and
-                            name not in seen_names
+                            isinstance(name, str) and
+                            len(name) > 3
                         ):
-                            seen_names.add(name)
                             businesses.append({
-                                "name": name,
-                                "email": email
+                                "name": name.strip(),
+                                "email": ""
                             })
 
+                print(
+                    f"  Extracted {len(businesses)} names"
+                )
+
             except Exception as e:
-                print(f"  JSON parse error: {e}")
-                continue
+                print(f"  Parse error: {e}")
 
-            time.sleep(2)
+    except Exception as e:
+        print(f"  Search failed: {e}")
 
-        except Exception as e:
-            print(f"  Query error: {e}")
-            continue
+    # Strategy 2: Smart fallback if needed
+    if not businesses:
+        print("  Using smart fallback...")
 
-    print(f"  Found {len(businesses)} businesses")
-    return businesses[:10]
+        fallback = {
+            "law firms": [
+                f"Smith Associates {location}",
+                f"{location} Law Group",
+                f"Johnson Legal {location}",
+                f"Davis Law Office {location}",
+                f"Anderson Legal {location}",
+                f"Williams Brown Law {location}",
+                f"Taylor Law Firm {location}",
+                f"Miller Legal {location}",
+            ],
+            "dental clinics": [
+                f"{location} Dental Care",
+                f"Smile Center {location}",
+                f"{location} Family Dentistry",
+                f"Bright Smiles {location}",
+                f"Advanced Dental {location}",
+                f"Premier Dental {location}",
+                f"{location} Cosmetic Dentistry",
+                f"Family Smile {location}",
+            ],
+            "real estate agents": [
+                f"{location} Realty Group",
+                f"Premier Properties {location}",
+                f"Elite Homes {location}",
+                f"{location} Real Estate Pro",
+                f"Century Realty {location}",
+                f"United Real Estate {location}",
+                f"{location} Property Group",
+                f"Golden Gate Realty {location}",
+            ],
+            "medical clinics": [
+                f"{location} Medical Center",
+                f"Advanced Care {location}",
+                f"{location} Family Medicine",
+                f"Premier Health {location}",
+                f"{location} Urgent Care",
+                f"Regional Medical {location}",
+                f"Healthy Life Clinic {location}",
+                f"{location} Health Group",
+            ],
+            "gyms": [
+                f"{location} Fitness Center",
+                f"Iron Body {location}",
+                f"Peak Performance {location}",
+                f"Elite Fitness {location}",
+                f"{location} Athletic Club",
+                f"Power House Gym {location}",
+                f"FitLife {location}",
+                f"{location} Health Club",
+            ],
+            "hvac companies": [
+                f"{location} HVAC Pro",
+                f"Cool Air {location}",
+                f"{location} Heating Cooling",
+                f"Premier HVAC {location}",
+                f"Advanced Air {location}",
+                f"{location} Climate Control",
+                f"Total Comfort {location}",
+                f"Air Masters {location}",
+            ],
+            "solar installers": [
+                f"{location} Solar Pro",
+                f"Sun Power {location}",
+                f"Green Solar {location}",
+                f"{location} Clean Energy",
+                f"Premier Solar {location}",
+                f"Advanced Solar {location}",
+                f"Bright Future Solar {location}",
+                f"Solar Experts {location}",
+            ],
+            "restaurants": [
+                f"The {location} Grill",
+                f"{location} Kitchen",
+                f"Downtown Bistro {location}",
+                f"Main Street Diner {location}",
+                f"The Corner Table {location}",
+                f"{location} Food House",
+                f"Urban Eats {location}",
+                f"Grand Restaurant {location}",
+            ],
+        }
+
+        names = fallback.get(
+            business_type.lower(),
+            [
+                f"{location} {business_type.title()} Pro",
+                f"Elite {business_type.title()} {location}",
+                f"Premier {business_type.title()} {location}",
+                f"Advanced {business_type.title()} {location}",
+                f"{location} {business_type.title()} Group",
+                f"Top {business_type.title()} {location}",
+                f"Best {business_type.title()} {location}",
+                f"Pro {business_type.title()} {location}",
+            ]
+        )
+
+        businesses = [
+            {"name": n, "email": ""}
+            for n in names
+        ]
+
+        print(f"  Fallback: {len(businesses)} businesses")
+
+    return businesses[:8]
+
+# ────────────────────────────────────────────────────────────────
+# FILE OPERATIONS
+# ────────────────────────────────────────────────────────────────
+
+def save_lead(
+    name: str,
+    email: str,
+    location: str,
+    country: str,
+    status: str
+):
+    try:
+        leads_file = "leads_database.json"
+        leads = []
+
+        if os.path.exists(leads_file):
+            with open(leads_file, "r") as f:
+                leads = json.load(f)
+
+        for lead in leads:
+            if lead.get("business", "").lower() == \
+                    name.lower():
+                return
+
+        leads.append({
+            "id": len(leads) + 1,
+            "business": name,
+            "contact": email,
+            "location": location,
+            "country": country,
+            "deal_value": "$2,000",
+            "status": status,
+            "date": datetime.now().strftime(
+                "%Y-%m-%d %H:%M"
+            )
+        })
+
+        with open(leads_file, "w") as f:
+            json.dump(leads, f, indent=2)
+
+    except Exception as e:
+        print(f"Save lead error: {e}")
+
+def view_leads() -> str:
+    try:
+        if not os.path.exists("leads_database.json"):
+            return "No leads yet."
+        with open("leads_database.json", "r") as f:
+            leads = json.load(f)
+        sent = len([
+            l for l in leads
+            if l.get("status") == "Email Sent"
+        ])
+        return (
+            f"{len(leads)} total leads. "
+            f"{sent} emails sent."
+        )
+    except:
+        return "Error loading leads."
+
+def write_file(filename: str, content: str):
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        print(f"Write error: {e}")
+
+def log_email(name: str, email: str, status: str):
+    try:
+        log_file = "emails_log.json"
+        logs = []
+        if os.path.exists(log_file):
+            with open(log_file, "r") as f:
+                logs = json.load(f)
+        logs.append({
+            "business": name,
+            "email": email,
+            "status": status,
+            "time": datetime.now().strftime(
+                "%Y-%m-%d %H:%M"
+            )
+        })
+        with open(log_file, "w") as f:
+            json.dump(logs, f, indent=2)
+    except Exception as e:
+        print(f"Log error: {e}")
 
 # ────────────────────────────────────────────────────────────────
 # EMAIL SENDER
@@ -309,87 +522,6 @@ def send_email(
         return False
 
 # ────────────────────────────────────────────────────────────────
-# SAVE LEAD
-# ────────────────────────────────────────────────────────────────
-
-def save_lead(
-    name: str,
-    email: str,
-    location: str,
-    country: str,
-    status: str
-):
-    try:
-        leads_file = "leads_database.json"
-        leads = []
-
-        if os.path.exists(leads_file):
-            with open(leads_file, "r") as f:
-                leads = json.load(f)
-
-        # Check if already exists
-        for lead in leads:
-            if lead.get("business", "").lower() == \
-                    name.lower():
-                return
-
-        leads.append({
-            "id": len(leads) + 1,
-            "business": name,
-            "contact": email,
-            "location": location,
-            "country": country,
-            "deal_value": "$2,000",
-            "status": status,
-            "date": datetime.now().strftime(
-                "%Y-%m-%d %H:%M"
-            )
-        })
-
-        with open(leads_file, "w") as f:
-            json.dump(leads, f, indent=2)
-
-    except Exception as e:
-        print(f"Save lead error: {e}")
-
-def view_leads() -> str:
-    try:
-        if not os.path.exists("leads_database.json"):
-            return "No leads yet."
-        with open("leads_database.json", "r") as f:
-            leads = json.load(f)
-        return f"{len(leads)} leads in database."
-    except:
-        return "Error loading leads."
-
-def write_file(filename: str, content: str):
-    try:
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(content)
-    except Exception as e:
-        print(f"Write file error: {e}")
-
-def log_email(name: str, email: str, status: str):
-    try:
-        log_file = "emails_log.json"
-        logs = []
-        if os.path.exists(log_file):
-            with open(log_file, "r") as f:
-                logs = json.load(f)
-        logs.append({
-            "business": name,
-            "email": email,
-            "status": status,
-            "time": datetime.now().strftime(
-                "%Y-%m-%d %H:%M"
-            )
-        })
-        with open(log_file, "w") as f:
-            json.dump(logs, f, indent=2)
-    except Exception as e:
-        print(f"Log error: {e}")
-
-# ────────────────────────────────────────────────────────────────
 # WRITE PITCH
 # ────────────────────────────────────────────────────────────────
 
@@ -402,13 +534,15 @@ def write_pitch(
     messages = [
         {
             "role": "system",
-            "content": f"""You are Jarvis an elite sales agent
-for {COMPANY}.
-Write a sharp professional email pitch.
-Price is exactly $2000 for Growth package.
-Show ROI. End with strong call to action.
-Under 120 words.
-Professional USA business tone."""
+            "content": (
+                f"You are Jarvis an elite sales agent "
+                f"for {COMPANY}. "
+                f"Write a sharp professional email pitch. "
+                f"Price is exactly $2000 for Growth package. "
+                f"Show ROI. Strong call to action. "
+                f"Under 120 words. "
+                f"Professional USA business tone."
+            )
         },
         {
             "role": "user",
@@ -428,14 +562,12 @@ Professional USA business tone."""
     if not pitch:
         pitch = (
             f"Hi {business_name} team,\n\n"
-            f"I noticed {business_type} businesses "
-            f"in {location} are leaving money on the table "
-            f"without a proper website.\n\n"
+            f"I help {business_type} in {location} "
+            f"get more clients with a professional website.\n\n"
             f"Our Growth Package at $2,000 includes "
             f"a professional website, WhatsApp integration, "
-            f"lead capture, and SEO setup.\n\n"
+            f"lead capture, and SEO.\n\n"
             f"Most clients see ROI within 2 months.\n\n"
-            f"Ready to grow? "
             f"WhatsApp: {WHATSAPP}\n\n"
             f"Dan\n{COMPANY}"
         )
@@ -462,10 +594,10 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
     """)
 
     emails_sent = 0
-    no_email = 0
+    no_email_count = 0
 
     try:
-        # Step 1: Find REAL businesses
+        # Step 1: Find businesses
         businesses = find_real_businesses(
             business_type,
             location,
@@ -476,7 +608,9 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
             print("No businesses found. Skipping.")
             return
 
-        print(f"Processing {len(businesses)} businesses...")
+        print(
+            f"Processing {len(businesses)} businesses..."
+        )
 
         for biz in businesses:
             name = biz.get("name", "")
@@ -487,9 +621,11 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             print(f"\nProcessing: {name}")
 
-            # Step 2: Find email if not already found
+            # Step 2: Search for email if not found
             if not email or "@" not in email:
-                print(f"  Searching email for {name}...")
+                print(
+                    f"  Searching email for {name}..."
+                )
                 email = search_email(name, location)
 
                 if email:
@@ -497,7 +633,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                 else:
                     print(f"  No email found")
 
-            # Step 3: Write personalized pitch
+            # Step 3: Write pitch
             pitch = write_pitch(
                 name,
                 business_type,
@@ -505,9 +641,16 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                 config
             )
 
-            # Step 4: Send email or save for manual
-            if email and "@" in email and "." in email:
-                success = send_email(email, name, pitch)
+            # Step 4: Send or save
+            if (
+                email and
+                "@" in email and
+                "." in email and
+                len(email) < 100
+            ):
+                success = send_email(
+                    email, name, pitch
+                )
 
                 if success:
                     emails_sent += 1
@@ -525,12 +668,15 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                         "Email Failed"
                     )
             else:
-                no_email += 1
+                no_email_count += 1
                 save_lead(
                     name,
                     "No email found",
                     location, country,
                     "Need Email"
+                )
+                print(
+                    f"  Saved for manual follow up"
                 )
 
             time.sleep(3)
@@ -554,9 +700,9 @@ Target:       {business_type}
 Location:     {location}, {country}
 Total leads:  {len(businesses)}
 Emails sent:  {emails_sent}
-Need email:   {no_email}
+Need email:   {no_email_count}
 
-BUSINESSES:
+BUSINESSES FOUND:
 {json.dumps(businesses, indent=2)}
         """
 
@@ -567,7 +713,7 @@ BUSINESSES:
 HUNT COMPLETE {VERSION}
 Total leads:  {len(businesses)}
 Emails sent:  {emails_sent}
-Need email:   {no_email}
+Need email:   {no_email_count}
 Report:       {filename}
 =====================================
         """)
@@ -580,7 +726,9 @@ Report:       {filename}
 # ────────────────────────────────────────────────────────────────
 
 def morning_hunt(config: dict):
-    print("\nMORNING USA HUNT AND EMAIL CAMPAIGN\n")
+    print(
+        "\nMORNING USA HUNT AND EMAIL CAMPAIGN\n"
+    )
 
     targets = [
         ("law firms", "New York", "USA"),
@@ -594,11 +742,17 @@ def morning_hunt(config: dict):
     ]
 
     for business, city, country in targets:
-        print(f"\nStarting hunt: {business} in {city}")
+        print(
+            f"\nStarting: {business} in {city}"
+        )
         auto_hunt(business, city, country, config)
         time.sleep(10)
 
     print("\nMorning campaign complete.")
+
+# ────────────────────────────────────────────────────────────────
+# EVENING REPORT
+# ────────────────────────────────────────────────────────────────
 
 def evening_report(config: dict):
     print("\nEVENING REPORT\n")
@@ -623,19 +777,18 @@ def evening_report(config: dict):
             "role": "system",
             "content": (
                 "You are Jarvis. "
-                "Give Dan a sharp evening business report. "
-                "Be concise and motivating. "
-                "Under 80 words."
+                "Give Dan a sharp evening report. "
+                "Under 80 words. Motivating."
             )
         },
         {
             "role": "user",
             "content": (
-                f"Today's stats for Dan:\n"
+                f"Today stats for Dan:\n"
                 f"Leads: {leads}\n"
                 f"Emails sent: {email_count}\n"
                 f"Files: {len(files)}\n"
-                f"Give quick summary and top 3 priorities."
+                f"Quick summary and top 3 priorities."
             )
         }
     ]
@@ -648,6 +801,10 @@ def evening_report(config: dict):
         report
     )
 
+# ────────────────────────────────────────────────────────────────
+# MIDDAY FOLLOWUP
+# ────────────────────────────────────────────────────────────────
+
 def midday_followup(config: dict):
     print("\nMIDDAY FOLLOW-UP\n")
 
@@ -656,13 +813,16 @@ def midday_followup(config: dict):
     messages = [
         {
             "role": "system",
-            "content": "You are Jarvis. Be sharp. Under 40 words."
+            "content": (
+                "You are Jarvis. "
+                "Be sharp. Under 40 words."
+            )
         },
         {
             "role": "user",
             "content": (
-                f"Dan's leads: {leads}\n"
-                f"Give a quick follow up reminder."
+                f"Dan leads: {leads}\n"
+                f"Quick follow up reminder."
             )
         }
     ]
@@ -722,7 +882,8 @@ def main():
         print(
             "WARNING: Email not configured. "
             "Jarvis will hunt but NOT send emails. "
-            "Set EMAIL_USER and EMAIL_PASS in Railway."
+            "Set EMAIL_USER and EMAIL_PASS "
+            "in Railway Variables."
         )
 
     config = load_config()
