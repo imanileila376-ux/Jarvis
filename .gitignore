@@ -1,0 +1,8 @@
+venv/
+*.pyc
+__pycache__/
+jarvis_memory.json
+leads_database.json
+temp/
+*.mp3
+config.yaml
