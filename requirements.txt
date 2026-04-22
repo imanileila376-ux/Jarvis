@@ -1,0 +1,10 @@
+litellm
+pyyaml
+requests
+beautifulsoup4
+schedule
+edge-tts
+pygame
+SpeechRecognition
+pyaudio
+groq

@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "business": "restaurants batch - Nairobi",
+    "contact": "WhatsApp: +254118240486",
+    "location": "Nairobi",
+    "country": "Kenya",
+    "deal_value": "See hunt report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 16:18",
+    "last_updated": "2026-04-21 16:18"
+  },
+  {
+    "id": 2,
+    "business": "restaurants - Westlands",
+    "contact": "WhatsApp: +254118240486",
+    "location": "Westlands",
+    "country": "Kenya",
+    "deal_value": "See report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 20:24",
+    "last_updated": "2026-04-21 20:24"
+  },
+  {
+    "id": 3,
+    "business": "law firms - Nairobi",
+    "contact": "WhatsApp: +254118240486",
+    "location": "Nairobi",
+    "country": "Kenya",
+    "deal_value": "See report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 20:25",
+    "last_updated": "2026-04-21 20:25"
+  },
+  {
+    "id": 4,
+    "business": "hospitals - Nairobi",
+    "contact": "WhatsApp: +254118240486",
+    "location": "Nairobi",
+    "country": "Kenya",
+    "deal_value": "See report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 20:25",
+    "last_updated": "2026-04-21 20:25"
+  },
+  {
+    "id": 5,
+    "business": "law firms - New York",
+    "contact": "Email: elizabethnzasi530@gmail.com",
+    "location": "New York",
+    "country": "USA",
+    "deal_value": "See report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 21:50",
+    "last_updated": "2026-04-21 21:50"
+  },
+  {
+    "id": 6,
+    "business": "dental clinics - Los Angeles",
+    "contact": "Email: elizabethnzasi530@gmail.com",
+    "location": "Los Angeles",
+    "country": "Usa",
+    "deal_value": "See report",
+    "status": "New",
+    "notes": "",
+    "date_added": "2026-04-21 22:03",
+    "last_updated": "2026-04-21 22:03"
+  }
+]

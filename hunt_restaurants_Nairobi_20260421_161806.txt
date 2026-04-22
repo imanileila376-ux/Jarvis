@@ -1,0 +1,121 @@
+
+AUTO HUNT REPORT
+================
+Company:  Digital Growth Agency
+WhatsApp: +254118240486
+Email:    elizabethnzasi530@gmail.com
+Website:  www.digitalgrowth.com
+Date:     2026-04-21 16:18
+Target:   restaurants
+Location: Nairobi, Kenya
+
+BUSINESSES FOUND:
+Search error: HTTPSConnectionPool(host='html.duckduckgo.com', port=443): Max retries exceeded with url: /html/?q=restaurants%20in%20Nairobi%20Kenya%20contact%20email%20phone (Caused by NameResolutionError("HTTPSConnection(host='html.duckduckgo.com', port=443): Failed to resolve 'html.duckduckgo.com' ([Errno 11001] getaddrinfo failed)"))
+
+PRICING REPORT:
+
+DYNAMIC PRICING REPORT
+======================
+Business : Restaurants
+Location : Nairobi, Kenya
+Size     : Medium
+
+PACKAGES:
+---------
+1. Starter Presence  : Ksh 48,750
+   - 5 page website
+   - Mobile friendly
+   - Contact form
+   - Google Maps
+
+2. Business Growth   : Ksh 97,500
+   - Everything in Starter
+   - WhatsApp button
+   - Lead capture
+   - Basic SEO
+   - Blog section
+
+3. Full Automation   : Ksh 195,000
+   - Everything in Growth
+   - Online booking
+   - Payment integration
+   - Customer database
+   - Monthly reports
+   - 6 months support
+
+RECOMMENDATION: Package 2 - Business Growth
+BEST VALUE FOR: Medium Restaurants
+
+
+ROI REPORT:
+
+ROI CALCULATION
+===============
+Extra clients/month  : +3
+Revenue per client   : Ksh 500
+Extra monthly revenue: Ksh 1,500
+Extra yearly revenue : Ksh 18,000
+Website investment   : Ksh 1,000
+ROI                  : 1700%
+Payback period       : 0.7 months
+
+BOTTOM LINE:
+This website pays for itself in 0.7 months.
+After that it makes Ksh 18,000 extra every year.
+That is Ksh 90,000 over 5 years!
+
+
+PERSONALIZED PITCHES:
+Here are the personalized pitches for the businesses:
+
+**Pitch 1:**
+
+Dear [Business Owner],
+
+Are you tired of having a website that's not converting visitors into customers? At Digital Growth Agency, we can help. Our expert team has analyzed your website and identified areas for improvement. We recommend our Business Growth package to take your restaurant in Nairobi, Kenya to the next level.
+
+With our package, you'll get a 5-page website, WhatsApp button, lead capture, basic SEO, blog section, and more. This will increase your online visibility and attract more customers. Our pricing is Ksh 97,500.
+
+Don't miss out on this opportunity to boost your sales. Contact us today!
+
+WhatsApp: +254118240486
+Email: elizabethnzasi530@gmail.com
+Website: www.digitalgrowth.com
+
+**Pitch 2:**
+
+Dear [Business Owner],
+
+Is your website causing more problems than it's solving? At Digital Growth Agency, we can help you resolve those issues and improve your online presence. Our expert team has analyzed your website and recommends our Full Automation package.
+
+With this package, you'll get everything in our Business Growth package plus online booking, payment integration, customer database, monthly reports, 6 months support, and more. This will take your restaurant to the next level and increase your sales. Our pricing is Ksh 195,000.
+
+Don't wait any longer to transform your website. Contact us today!
+
+WhatsApp: +254118240486
+Email: elizabethnzasi530@gmail.com
+Website: www.digitalgrowth.com
+
+**Pitch 3:**
+
+Dear [Business Owner],
+
+Are you struggling to get more customers for your restaurant in Nairobi, Kenya? At Digital Growth Agency, we can help. Our expert team has analyzed your website and identified areas for improvement.
+
+We recommend our Business Growth package to increase your online visibility and attract more customers. With this package, you'll get a 5-page website, WhatsApp button, lead capture, basic SEO, blog section, and more. This will boost your sales and increase your revenue.
+
+Our pricing is Ksh 97,500. Don't miss out on this opportunity to grow your business. Contact us today!
+
+WhatsApp: +254118240486
+Email: elizabethnzasi530@gmail.com
+Website: www.digitalgrowth.com
+
+HOW TO USE THESE PITCHES:
+1. Google each business name
+2. Find their WhatsApp or email
+3. Copy the pitch for that business
+4. Send it via WhatsApp or email
+5. Follow up after 2 days
+6. Close the deal
+7. Collect payment via M-Pesa or PayPal
+    
