@@ -3,7 +3,10 @@ import os
 import time
 import schedule
 import requests
+import smtplib
 import resend
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from bs4 import BeautifulSoup
 from datetime import datetime
 from litellm import completion
@@ -13,16 +16,19 @@ from litellm import completion
 # ────────────────────────────────────────────────────────────────
 
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
-EMAIL_USER = os.environ.get(
-    "EMAIL_USER", "elizabethnzasi530@gmail.com"
+GMAIL_USER = os.environ.get(
+    "GMAIL_USER",
+    "elizabethnzasi530@gmail.com"
 )
+GMAIL_PASS = os.environ.get("GMAIL_PASS", "")
 RESEND_KEY = os.environ.get("RESEND_KEY", "")
+FROM_DOMAIN = os.environ.get("FROM_DOMAIN", "")
 WHATSAPP = os.environ.get(
     "WHATSAPP", "+254118240486"
 )
 USER_NAME = "Dan"
 COMPANY = "Digital Growth Agency"
-VERSION = "v6"
+VERSION = "v7"
 
 HEADERS = {
     "User-Agent": (
@@ -64,7 +70,7 @@ REAL_BUSINESSES = {
             "location": "New York",
         },
         {
-            "name": "Skadden Arps Slate",
+            "name": "Skadden Arps",
             "email": "info@skadden.com",
             "location": "New York",
         },
@@ -74,14 +80,14 @@ REAL_BUSINESSES = {
             "location": "New York",
         },
         {
-            "name": "Cleary Gottlieb Steen",
+            "name": "Cleary Gottlieb",
             "email": "info@cgsh.com",
             "location": "New York",
         },
     ],
     "dental clinics": [
         {
-            "name": "Aspen Dental Los Angeles",
+            "name": "Aspen Dental LA",
             "email": "info@aspendental.com",
             "location": "Los Angeles",
         },
@@ -101,11 +107,6 @@ REAL_BUSINESSES = {
             "location": "Los Angeles",
         },
         {
-            "name": "Brite Dental",
-            "email": "info@britedental.com",
-            "location": "Los Angeles",
-        },
-        {
             "name": "Smile Generation",
             "email": "info@smilegeneration.com",
             "location": "Los Angeles",
@@ -113,6 +114,11 @@ REAL_BUSINESSES = {
         {
             "name": "Beverly Hills Dental",
             "email": "info@beverlyhillsdental.com",
+            "location": "Los Angeles",
+        },
+        {
+            "name": "Brite Dental",
+            "email": "info@britedental.com",
             "location": "Los Angeles",
         },
         {
@@ -175,7 +181,7 @@ REAL_BUSINESSES = {
             "location": "Houston",
         },
         {
-            "name": "AFC Urgent Care Houston",
+            "name": "AFC Urgent Care",
             "email": "info@afcurgentcare.com",
             "location": "Houston",
         },
@@ -396,7 +402,10 @@ def load_config():
 # AI CHAT
 # ────────────────────────────────────────────────────────────────
 
-def ask_jarvis(messages: list, config: dict) -> str:
+def ask_jarvis(
+    messages: list,
+    config: dict
+) -> str:
     try:
         response = completion(
             model=config["llm"]["model"],
@@ -428,7 +437,6 @@ def search_web(query: str) -> str:
         soup = BeautifulSoup(
             response.text, "html.parser"
         )
-
         results = []
         for result in soup.find_all(
             "div", class_="result"
@@ -444,9 +452,7 @@ def search_web(query: str) -> str:
                     f"Name: {title.get_text(strip=True)}\n"
                     f"Info: {snippet.get_text(strip=True) if snippet else ''}"
                 )
-
         return "\n\n".join(results) if results else ""
-
     except Exception as e:
         print(f"Search error: {e}")
         return ""
@@ -455,27 +461,23 @@ def search_email(
     business_name: str,
     location: str
 ) -> str:
+    config = load_config()
     queries = [
         f"{business_name} {location} email contact",
-        f"{business_name} contact us email",
+        f"{business_name} contact email address",
     ]
-
-    config = load_config()
-
     for query in queries:
         try:
             results = search_web(query)
             if not results:
                 continue
-
             messages = [
                 {
                     "role": "system",
                     "content": (
-                        "Find email address in this text. "
+                        "Find email in this text. "
                         "Return ONLY the email. "
-                        "Example: info@company.com "
-                        "If none found return: none"
+                        "If none return: none"
                     )
                 },
                 {
@@ -483,25 +485,20 @@ def search_email(
                     "content": results[:2000]
                 }
             ]
-
             found = ask_jarvis(
                 messages, config
             ).strip().lower()
-
             if (
                 "@" in found and
                 "." in found and
                 len(found) < 100 and
                 "none" not in found and
-                " " not in found.strip()
+                " " not in found
             ):
-                return found.strip()
-
+                return found
             time.sleep(1)
-
-        except Exception as e:
+        except:
             continue
-
     return ""
 
 # ────────────────────────────────────────────────────────────────
@@ -517,49 +514,34 @@ def find_real_businesses(
         f"  Finding {business_type} "
         f"in {location}..."
     )
-
     businesses = []
     config = load_config()
 
-    # Strategy 1: Real database
+    # Real database first
     db_key = business_type.lower()
     if db_key in REAL_BUSINESSES:
         db_results = REAL_BUSINESSES[db_key]
-        location_matches = [
+        matches = [
             b for b in db_results
             if location.lower() in
             b.get("location", "").lower()
         ]
-        if location_matches:
-            businesses = location_matches
-            print(
-                f"  Database: "
-                f"{len(businesses)} found"
-            )
-        else:
-            businesses = db_results[:5]
-            print(
-                f"  Database: "
-                f"{len(businesses)} found"
-            )
+        businesses = matches if matches else db_results[:5]
+        print(f"  Database: {len(businesses)}")
 
-    # Strategy 2: Web search for more
+    # Web search for more
     try:
-        query = (
-            f"{business_type} {location} "
-            f"email contact"
+        results = search_web(
+            f"{business_type} {location} email"
         )
-        results = search_web(query)
-
         if results:
             messages = [
                 {
                     "role": "system",
                     "content": (
                         "Extract business names and emails. "
-                        "Return ONLY JSON: "
-                        '[{"name":"...", "email":"..."}] '
-                        "Only JSON."
+                        "Return ONLY JSON array: "
+                        '[{"name":"...", "email":"..."}]'
                     )
                 },
                 {
@@ -567,9 +549,7 @@ def find_real_businesses(
                     "content": results[:3000]
                 }
             ]
-
             response = ask_jarvis(messages, config)
-
             try:
                 clean = response.strip()
                 start = clean.find("[")
@@ -577,54 +557,209 @@ def find_real_businesses(
                 if start >= 0 and end > start:
                     clean = clean[start:end]
                 extra = json.loads(clean)
-
-                existing = [
-                    b["name"] for b in businesses
-                ]
-
+                existing = [b["name"] for b in businesses]
                 if isinstance(extra, list):
                     for item in extra:
                         name = item.get("name", "")
                         email = item.get("email", "")
-                        if (
-                            name and
-                            len(name) > 3 and
-                            name not in existing
-                        ):
+                        if name and name not in existing:
                             businesses.append({
                                 "name": name,
                                 "email": email,
                                 "location": location
                             })
+            except:
+                pass
+    except:
+        pass
 
-                print(f"  Total: {len(businesses)}")
-
-            except Exception as e:
-                print(f"  Parse error: {e}")
-
-    except Exception as e:
-        print(f"  Web error: {e}")
-
-    # Strategy 3: Fallback
+    # Fallback
     if not businesses:
-        print("  Using fallback...")
-        fallback = [
-            f"Premier {business_type.title()} {location}",
-            f"Elite {business_type.title()} {location}",
-            f"Advanced {business_type.title()} {location}",
-            f"{location} {business_type.title()} Pro",
-            f"Top {business_type.title()} {location}",
-        ]
         businesses = [
             {
-                "name": n,
+                "name": f"Premier {business_type.title()} {location}",
                 "email": "",
                 "location": location
-            }
-            for n in fallback
+            },
+            {
+                "name": f"Elite {business_type.title()} {location}",
+                "email": "",
+                "location": location
+            },
+            {
+                "name": f"Top {business_type.title()} {location}",
+                "email": "",
+                "location": location
+            },
         ]
 
     return businesses[:8]
+
+# ────────────────────────────────────────────────────────────────
+# EMAIL SENDER
+# Tries Gmail first then Resend
+# ────────────────────────────────────────────────────────────────
+
+def build_email_html(
+    business_name: str,
+    pitch: str
+) -> str:
+    return f"""
+<html>
+<body style="font-family:Arial,sans-serif;
+             max-width:600px;
+             margin:0 auto;
+             padding:20px;">
+
+    <div style="background:#1a1a2e;
+                padding:20px;
+                border-radius:8px;
+                margin-bottom:20px;">
+        <h2 style="color:#ffffff;margin:0;">
+            {COMPANY}
+        </h2>
+        <p style="color:#cccccc;
+                  margin:5px 0 0 0;
+                  font-size:14px;">
+            We build websites that make money
+        </p>
+    </div>
+
+    <div style="padding:20px;
+                background:#f9f9f9;
+                border-radius:8px;
+                line-height:1.8;
+                color:#333333;">
+        {pitch.replace(chr(10), "<br>")}
+    </div>
+
+    <div style="margin-top:20px;
+                padding:15px;
+                border-top:2px solid #1a1a2e;
+                color:#333333;">
+        <p style="margin:0;">
+            <strong>Dan</strong><br>
+            Managing Partner<br>
+            {COMPANY}<br>
+            WhatsApp: {WHATSAPP}<br>
+            Email: {GMAIL_USER}
+        </p>
+    </div>
+
+    <div style="margin-top:10px;
+                padding:8px;
+                text-align:center;
+                font-size:11px;
+                color:#999999;">
+        To unsubscribe reply STOP.
+    </div>
+
+</body>
+</html>
+    """
+
+def send_via_gmail(
+    to_email: str,
+    subject: str,
+    html: str
+) -> bool:
+    """Send using Gmail SMTP SSL port 465"""
+    if not GMAIL_USER or not GMAIL_PASS:
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Dan - {COMPANY} <{GMAIL_USER}>"
+        msg["To"] = to_email
+
+        msg.attach(MIMEText(html, "html"))
+
+        # Use SSL port 465
+        with smtplib.SMTP_SSL(
+            "smtp.gmail.com", 465
+        ) as server:
+            server.login(GMAIL_USER, GMAIL_PASS)
+            server.sendmail(
+                GMAIL_USER,
+                to_email,
+                msg.as_string()
+            )
+
+        print(f"Gmail sent to {to_email}")
+        return True
+
+    except Exception as e:
+        print(f"Gmail error: {e}")
+        return False
+
+def send_via_resend(
+    to_email: str,
+    subject: str,
+    html: str
+) -> bool:
+    """Send using Resend API"""
+    if not RESEND_KEY:
+        return False
+    try:
+        resend.api_key = RESEND_KEY
+
+        # Use verified domain if available
+        if FROM_DOMAIN:
+            from_email = f"Dan <dan@{FROM_DOMAIN}>"
+        else:
+            # Only works for your own email
+            from_email = "onboarding@resend.dev"
+            to_email = GMAIL_USER
+
+        response = resend.Emails.send({
+            "from": from_email,
+            "to": to_email,
+            "subject": subject,
+            "html": html
+        })
+
+        if response and response.get("id"):
+            print(f"Resend sent to {to_email}")
+            return True
+        return False
+
+    except Exception as e:
+        print(f"Resend error: {e}")
+        return False
+
+def send_email(
+    to_email: str,
+    business_name: str,
+    pitch: str
+) -> bool:
+    """
+    Smart email sender.
+    Tries Gmail first (free direct sending).
+    Falls back to Resend if Gmail fails.
+    """
+    subject = (
+        f"Website Growth Proposal "
+        f"for {business_name}"
+    )
+    html = build_email_html(business_name, pitch)
+
+    # Try Gmail first (completely free)
+    if GMAIL_USER and GMAIL_PASS:
+        success = send_via_gmail(
+            to_email, subject, html
+        )
+        if success:
+            return True
+        print("Gmail failed. Trying Resend...")
+
+    # Try Resend as backup
+    if RESEND_KEY:
+        return send_via_resend(
+            to_email, subject, html
+        )
+
+    print("No email method configured.")
+    return False
 
 # ────────────────────────────────────────────────────────────────
 # FILE OPERATIONS
@@ -640,17 +775,14 @@ def save_lead(
     try:
         leads_file = "leads_database.json"
         leads = []
-
         if os.path.exists(leads_file):
             with open(leads_file, "r") as f:
                 leads = json.load(f)
-
         for lead in leads:
             if lead.get(
                 "business", ""
             ).lower() == name.lower():
                 return
-
         leads.append({
             "id": len(leads) + 1,
             "business": name,
@@ -663,12 +795,10 @@ def save_lead(
                 "%Y-%m-%d %H:%M"
             )
         })
-
         with open(leads_file, "w") as f:
             json.dump(leads, f, indent=2)
-
     except Exception as e:
-        print(f"Save lead error: {e}")
+        print(f"Save error: {e}")
 
 def view_leads() -> str:
     try:
@@ -680,12 +810,9 @@ def view_leads() -> str:
             l for l in leads
             if l.get("status") == "Email Sent"
         ])
-        return (
-            f"{len(leads)} total leads. "
-            f"{sent} emails sent."
-        )
+        return f"{len(leads)} leads. {sent} sent."
     except:
-        return "Error loading leads."
+        return "Error."
 
 def write_file(filename: str, content: str):
     try:
@@ -721,108 +848,6 @@ def log_email(
         print(f"Log error: {e}")
 
 # ────────────────────────────────────────────────────────────────
-# EMAIL SENDER - RESEND
-# ────────────────────────────────────────────────────────────────
-
-def send_email(
-    to_email: str,
-    business_name: str,
-    pitch: str
-) -> bool:
-    """
-    Send email using Resend.
-    Free: 3000 emails per month.
-    Works perfectly on Railway.
-    """
-    if not RESEND_KEY:
-        print(
-            "RESEND_KEY not set. "
-            "Add it to Railway Variables."
-        )
-        return False
-
-    try:
-        resend.api_key = RESEND_KEY
-
-        html_content = f"""
-<html>
-<body style="font-family: Arial, sans-serif;
-             max-width: 600px;
-             margin: 0 auto;
-             padding: 20px;">
-
-    <div style="background: #1a1a2e;
-                padding: 20px;
-                border-radius: 8px;
-                margin-bottom: 20px;">
-        <h2 style="color: #ffffff; margin: 0;">
-            {COMPANY}
-        </h2>
-        <p style="color: #cccccc;
-                  margin: 5px 0 0 0;
-                  font-size: 14px;">
-            We build websites that make money
-        </p>
-    </div>
-
-    <div style="padding: 20px;
-                background: #f9f9f9;
-                border-radius: 8px;
-                line-height: 1.8;
-                color: #333333;">
-        {pitch.replace(chr(10), "<br>")}
-    </div>
-
-    <div style="margin-top: 20px;
-                padding: 15px;
-                border-top: 2px solid #1a1a2e;
-                color: #333333;">
-        <p style="margin: 0;">
-            <strong>Dan</strong><br>
-            Managing Partner<br>
-            {COMPANY}<br>
-            WhatsApp: {WHATSAPP}<br>
-            Email: {EMAIL_USER}
-        </p>
-    </div>
-
-    <div style="margin-top: 10px;
-                padding: 8px;
-                text-align: center;
-                font-size: 11px;
-                color: #999999;">
-        To unsubscribe reply STOP.
-    </div>
-
-</body>
-</html>
-        """
-
-        response = resend.Emails.send({
-            "from": "onboarding@resend.dev",
-            "to": to_email,
-            "subject": (
-                f"Website Growth Proposal "
-                f"for {business_name}"
-            ),
-            "html": html_content
-        })
-
-        if response and response.get("id"):
-            print(
-                f"Email sent to {to_email} "
-                f"ID: {response['id']}"
-            )
-            return True
-        else:
-            print(f"Resend failed: {response}")
-            return False
-
-    except Exception as e:
-        print(f"Email error: {e}")
-        return False
-
-# ────────────────────────────────────────────────────────────────
 # WRITE PITCH
 # ────────────────────────────────────────────────────────────────
 
@@ -836,27 +861,25 @@ def write_pitch(
         {
             "role": "system",
             "content": (
-                f"You are Jarvis an elite sales agent "
+                f"You are Jarvis elite sales agent "
                 f"for {COMPANY}. "
-                f"Write a sharp professional email pitch. "
-                f"Price is exactly $2000 for Growth package. "
-                f"Show ROI numbers. "
-                f"Strong call to action. "
+                f"Write sharp professional email pitch. "
+                f"Price exactly $2000 Growth package. "
+                f"Show ROI. Strong call to action. "
                 f"Under 120 words. "
-                f"Professional USA business tone. "
-                f"Use paragraphs not bullet points."
+                f"Professional USA tone. "
+                f"Paragraphs not bullet points."
             )
         },
         {
             "role": "user",
             "content": (
-                f"Write pitch for:\n"
                 f"Business: {business_name}\n"
                 f"Type: {business_type}\n"
                 f"Location: {location}\n"
                 f"Price: $2,000\n"
                 f"Contact: WhatsApp {WHATSAPP} "
-                f"or {EMAIL_USER}"
+                f"or {GMAIL_USER}"
             )
         }
     ]
@@ -867,13 +890,12 @@ def write_pitch(
         pitch = (
             f"Hi {business_name} team,\n\n"
             f"I help {business_type} in {location} "
-            f"get more clients with a professional "
-            f"website.\n\n"
-            f"Our Growth Package at $2,000 includes "
-            f"a professional website, WhatsApp "
+            f"attract more clients online.\n\n"
+            f"Our Growth Package at $2,000 delivers "
+            f"a professional website with WhatsApp "
             f"integration, lead capture, and SEO. "
             f"Most clients see ROI within 60 days.\n\n"
-            f"Interested? "
+            f"Ready to grow?\n"
             f"WhatsApp: {WHATSAPP}\n\n"
             f"Dan\n{COMPANY}"
         )
@@ -881,7 +903,7 @@ def write_pitch(
     return pitch
 
 # ────────────────────────────────────────────────────────────────
-# AUTO HUNT WITH EMAIL
+# AUTO HUNT
 # ────────────────────────────────────────────────────────────────
 
 def auto_hunt(
@@ -904,9 +926,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
     try:
         businesses = find_real_businesses(
-            business_type,
-            location,
-            country
+            business_type, location, country
         )
 
         if not businesses:
@@ -914,8 +934,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
             return
 
         print(
-            f"Processing {len(businesses)} "
-            f"businesses..."
+            f"Processing {len(businesses)} businesses..."
         )
 
         for biz in businesses:
@@ -927,7 +946,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             print(f"\nProcessing: {name}")
 
-            # Search for email if missing
+            # Find email if missing
             if not email or "@" not in email:
                 print(f"  Searching email...")
                 email = search_email(name, location)
@@ -938,13 +957,11 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             # Write pitch
             pitch = write_pitch(
-                name,
-                business_type,
-                location,
-                config
+                name, business_type,
+                location, config
             )
 
-            # Send or save
+            # Send email
             if (
                 email and
                 "@" in email and
@@ -954,7 +971,6 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                 success = send_email(
                     email, name, pitch
                 )
-
                 if success:
                     emails_sent += 1
                     log_email(name, email, "Sent")
@@ -964,9 +980,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                         "Email Sent"
                     )
                 else:
-                    log_email(
-                        name, email, "Failed"
-                    )
+                    log_email(name, email, "Failed")
                     save_lead(
                         name, email,
                         location, country,
@@ -976,7 +990,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                 no_email_count += 1
                 save_lead(
                     name,
-                    "No email found",
+                    "No email",
                     location, country,
                     "Need Email"
                 )
@@ -1025,11 +1039,11 @@ Report:      {filename}
         print(f"Hunt error: {e}")
 
 # ────────────────────────────────────────────────────────────────
-# MORNING CAMPAIGN
+# SCHEDULED TASKS
 # ────────────────────────────────────────────────────────────────
 
 def morning_hunt(config: dict):
-    print("\nMORNING USA CAMPAIGN STARTING\n")
+    print("\nMORNING USA CAMPAIGN\n")
 
     targets = [
         ("law firms", "New York", "USA"),
@@ -1049,20 +1063,12 @@ def morning_hunt(config: dict):
 
     print("\nMorning campaign complete.")
 
-# ────────────────────────────────────────────────────────────────
-# EVENING REPORT
-# ────────────────────────────────────────────────────────────────
-
 def evening_report(config: dict):
     print("\nEVENING REPORT\n")
 
     leads = view_leads()
-    files = [
-        f for f in os.listdir(".")
-        if f.endswith(".txt")
-    ]
-
     email_count = 0
+
     if os.path.exists("emails_log.json"):
         with open("emails_log.json", "r") as f:
             logs = json.load(f)
@@ -1076,56 +1082,41 @@ def evening_report(config: dict):
             "role": "system",
             "content": (
                 "You are Jarvis. "
-                "Give Dan a sharp evening report. "
-                "Under 80 words. Motivating."
+                "Sharp evening report. "
+                "Under 60 words."
             )
         },
         {
             "role": "user",
             "content": (
-                f"Stats for Dan:\n"
                 f"Leads: {leads}\n"
-                f"Emails sent today: {email_count}\n"
-                f"Files: {len(files)}\n"
-                f"Give summary and top 3 priorities."
+                f"Emails sent: {email_count}\n"
+                f"Give Dan quick summary and "
+                f"top 3 priorities tomorrow."
             )
         }
     ]
 
     report = ask_jarvis(messages, config)
-    print(f"\nEVENING REPORT:\n{report}\n")
-
+    print(f"\nREPORT:\n{report}\n")
     write_file(
         f"report_{datetime.now().strftime('%Y%m%d')}.txt",
         report
     )
 
-# ────────────────────────────────────────────────────────────────
-# MIDDAY FOLLOWUP
-# ────────────────────────────────────────────────────────────────
-
 def midday_followup(config: dict):
-    print("\nMIDDAY FOLLOW-UP\n")
-
+    print("\nMIDDAY FOLLOWUP\n")
     leads = view_leads()
-
     messages = [
         {
             "role": "system",
-            "content": (
-                "You are Jarvis. "
-                "Be sharp. Under 40 words."
-            )
+            "content": "Jarvis. Sharp. Under 30 words."
         },
         {
             "role": "user",
-            "content": (
-                f"Dan leads: {leads}\n"
-                f"Quick follow up reminder."
-            )
+            "content": f"Leads: {leads}. Reminder for Dan."
         }
     ]
-
     reminder = ask_jarvis(messages, config)
     print(f"\nREMINDER:\n{reminder}\n")
 
@@ -1136,11 +1127,10 @@ def midday_followup(config: dict):
 def start_scheduler(config: dict):
     print("""
 ====================================
-CLOUD SCHEDULER ACTIVE
-====================================
-Morning Hunt + Emails: 08:00 AM
-Midday Follow-up:      12:00 PM
-Evening Report:        07:00 PM
+SCHEDULER ACTIVE
+Morning Hunt:    08:00 AM
+Midday Followup: 12:00 PM
+Evening Report:  07:00 PM
 ====================================
     """)
 
@@ -1167,10 +1157,10 @@ def main():
 ====================================
   J.A.R.V.I.S CLOUD {VERSION}
   Elite Emailer for {USER_NAME}
-  Model: groq/llama-3.3-70b-versatile
+  Model: Groq Llama 3.3 70B
   Market: USA PRIMARY
-  Email: Resend
-  Mode: 24/7 Hunt and Email
+  Email: Gmail + Resend
+  Mode: 24/7 Autonomous
 ====================================
     """)
 
@@ -1178,18 +1168,33 @@ def main():
         print("ERROR: GROQ_API_KEY not set!")
         return
 
-    if not RESEND_KEY:
+    # Show email status
+    if GMAIL_USER and GMAIL_PASS:
         print(
-            "WARNING: RESEND_KEY not set.\n"
-            "Jarvis will hunt but NOT send emails.\n"
-            "Get free key at resend.com\n"
-            "Add RESEND_KEY to Railway Variables."
+            f"Email method: Gmail "
+            f"(sending directly to clients)"
+        )
+    elif RESEND_KEY and FROM_DOMAIN:
+        print(
+            f"Email method: Resend "
+            f"(sending directly to clients)"
+        )
+    elif RESEND_KEY:
+        print(
+            "Email method: Resend "
+            "(sending to Dan only - no domain)"
+        )
+    else:
+        print(
+            "WARNING: No email configured.\n"
+            "Add GMAIL_USER + GMAIL_PASS to Railway\n"
+            "for free direct email sending."
         )
 
     config = load_config()
 
-    # Run startup hunt
-    print("Running startup hunt...")
+    # Startup hunt
+    print("\nRunning startup hunt...")
     auto_hunt(
         "law firms",
         "New York",
@@ -1197,7 +1202,7 @@ def main():
         config
     )
 
-    # Start daily scheduler
+    # Start scheduler
     start_scheduler(config)
 
 if __name__ == "__main__":
