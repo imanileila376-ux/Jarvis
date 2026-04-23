@@ -12,13 +12,6 @@ from listen import listen, listen_continuous, wait_for_clap
 from memory_store import remember_fact, get_memory_summary
 
 # ────────────────────────────────────────────────────────────────
-# COMBINE ALL TOOLS
-# ────────────────────────────────────────────────────────────────
-
-ALL_TOOLS = TOOLS + WEB_TOOLS
-ALL_FUNCTIONS = {**TOOL_FUNCTIONS, **WEB_TOOL_FUNCTIONS}
-
-# ────────────────────────────────────────────────────────────────
 # DETAILS
 # ────────────────────────────────────────────────────────────────
 
@@ -95,7 +88,9 @@ class Memory:
     def trim(self):
         if len(self.messages) > self.max_messages:
             system = self.messages[0]
-            recent = self.messages[-(self.max_messages - 1):]
+            recent = self.messages[
+                -(self.max_messages - 1):
+            ]
             self.messages = [system] + recent
 
 # ────────────────────────────────────────────────────────────────
@@ -128,7 +123,9 @@ def chat(memory: Memory, config: dict) -> str:
 def chat_with_tool(
     memory: Memory,
     config: dict,
-    tool_name: str
+    tool_name: str,
+    all_tools: list,
+    all_functions: dict
 ) -> str:
     print(f"\n🔧 Using tool: {tool_name}...")
 
@@ -138,8 +135,8 @@ def chat_with_tool(
             messages=memory.get(),
             api_key=config["llm"]["api_key"],
             temperature=0.1,
-            max_tokens=500,
-            tools=ALL_TOOLS,
+            max_tokens=1000,
+            tools=all_tools,
             tool_choice={
                 "type": "function",
                 "function": {"name": tool_name}
@@ -155,7 +152,7 @@ def chat_with_tool(
 
         try:
             args = json.loads(tc.function.arguments)
-            result = ALL_FUNCTIONS[tool_name](**args)
+            result = all_functions[tool_name](**args)
             print(f"✅ Done!\n")
         except Exception as e:
             return f"Tool error: {e}"
@@ -194,7 +191,8 @@ def auto_hunt(
     location: str,
     country: str,
     config: dict,
-    memory: Memory
+    memory: Memory,
+    all_functions: dict
 ) -> str:
     print(f"""
 =====================================
@@ -206,55 +204,50 @@ Location: {location}, {country}
 
     jarvis_speak(
         f"Copy that {USER_NAME}. "
-        f"Hunting {business_type} in {location}. "
-        f"Stand by."
+        f"Hunting {business_type} in {location}."
     )
 
-    print("Finding businesses...")
-    businesses = ALL_FUNCTIONS["find_businesses"](
+    businesses = all_functions["find_businesses"](
         business_type=business_type,
         location=location,
         country=country
     )
     jarvis_speak("Targets acquired. Calculating pricing.")
 
-    price_report = ALL_FUNCTIONS["calculate_price"](
+    price_report = all_functions["calculate_price"](
         country=country,
         city=location,
         business_type=business_type,
         size="medium"
     )
 
-    roi_report = ALL_FUNCTIONS["calculate_roi"](
+    roi_report = all_functions["calculate_roi"](
         country=country,
         revenue_per_client=1000,
         expected_new_clients=5,
         website_cost=2000
     )
 
-    jarvis_speak("Writing pitches now.")
+    jarvis_speak("Writing pitches.")
 
     pitch_messages = [
         {
             "role": "system",
             "content": (
-                f"You are Jarvis an elite sales agent "
-                f"for {COMPANY}. "
-                f"Write sharp professional USA sales pitches. "
-                f"Use each business name. "
+                f"Elite sales agent for {COMPANY}. "
+                f"Write sharp USA pitches. "
                 f"Price exactly $2000. Show ROI. "
                 f"Include WhatsApp {WHATSAPP} "
                 f"and Email {EMAIL}. "
-                f"Under 150 words per pitch."
+                f"Under 150 words each."
             )
         },
         {
             "role": "user",
             "content": (
-                f"Write pitches for:\n{businesses}\n"
+                f"Pitches for:\n{businesses}\n"
                 f"Pricing: {price_report}\n"
-                f"ROI: {roi_report}\n"
-                f"One pitch per business."
+                f"ROI: {roi_report}"
             )
         }
     ]
@@ -281,13 +274,11 @@ Location: {location}, {country}
 AUTO HUNT REPORT
 ================
 Company:  {COMPANY}
-WhatsApp: {WHATSAPP}
-Email:    {EMAIL}
 Date:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 Target:   {business_type}
 Location: {location}, {country}
 
-BUSINESSES FOUND:
+BUSINESSES:
 {businesses}
 
 PRICING:
@@ -298,22 +289,14 @@ ROI:
 
 PITCHES:
 {pitches}
-
-NEXT STEPS:
-1. Google each business
-2. Find their email
-3. Send the pitch
-4. Follow up after 2 days
-5. Close at $2,000
-6. Collect via PayPal
     """
 
-    ALL_FUNCTIONS["write_file"](
+    all_functions["write_file"](
         filename=filename,
         content=report
     )
 
-    ALL_FUNCTIONS["save_lead"](
+    all_functions["save_lead"](
         business_name=f"{business_type} - {location}",
         contact=f"Email: {EMAIL}",
         location=location,
@@ -324,13 +307,12 @@ NEXT STEPS:
 
     jarvis_speak(
         f"Mission complete {USER_NAME}. "
-        f"Found targets in {location}. "
         f"Check your screen."
     )
 
-    print(f"\nSaved to: {filename}\n")
+    print(f"Saved to: {filename}\n")
     memory.add_jarvis(
-        f"Auto hunt complete for {business_type} "
+        f"Hunt complete for {business_type} "
         f"in {location}. Saved to {filename}."
     )
 
@@ -345,17 +327,14 @@ def auto_save_facts(user_input: str):
     triggers = [
         "my name is", "my goal is",
         "i want to", "my business is",
-        "i live in", "my target is",
-        "remember that", "remember this",
-        "dont forget", "my company is",
-        "i sell", "my product is",
-        "my target market is",
+        "i live in", "remember that",
+        "remember this", "dont forget",
+        "my company is", "my target market is",
     ]
     for trigger in triggers:
         if trigger in text:
-            fact = user_input.strip()
-            remember_fact(fact)
-            print(f"🧠 Remembered: {fact}\n")
+            remember_fact(user_input.strip())
+            print(f"🧠 Remembered: {user_input.strip()}\n")
             break
 
 # ────────────────────────────────────────────────────────────────
@@ -365,7 +344,7 @@ def auto_save_facts(user_input: str):
 def detect_intent(text: str) -> str:
     t = text.lower()
 
-    # ── Website building ──────────────────────────────────────
+    # Website building - check FIRST
     if any(w in t for w in [
         "build website", "create website",
         "make website", "build their site",
@@ -373,18 +352,16 @@ def detect_intent(text: str) -> str:
         "build site for", "make site for",
         "build a website", "create a website",
         "build the website", "build_website",
-        "use the build", "website tool",
-        "build website tool", "build site",
-        "create site", "make site",
-        "launch website", "launch site",
+        "website tool", "launch website",
         "deploy website", "generate website",
         "client agreed", "client said yes",
         "client paid", "build their website",
         "create their website",
+        "make their website",
     ]):
         return "build_website"
 
-    # ── Auto hunt ─────────────────────────────────────────────
+    # Auto hunt
     elif any(w in t for w in [
         "auto hunt", "hunt for",
         "find and pitch", "do everything",
@@ -392,7 +369,7 @@ def detect_intent(text: str) -> str:
     ]):
         return "auto"
 
-    # ── Find businesses ───────────────────────────────────────
+    # Find businesses
     elif any(w in t for w in [
         "find businesses", "find restaurants",
         "find law firms", "find salons",
@@ -404,25 +381,24 @@ def detect_intent(text: str) -> str:
     ]):
         return "find_businesses"
 
-    # ── Check website ─────────────────────────────────────────
+    # Check website quality
     elif any(w in t for w in [
         "check website", "website quality",
         "analyze website", "review website"
     ]):
         return "check_website_quality"
 
-    # ── Generate AI image ─────────────────────────────────────
+    # AI Image generation
     elif any(w in t for w in [
         "generate image", "create image",
         "ai image", "generate photo",
-        "create photo", "ai influencer",
-        "generate influencer", "create model",
-        "generate model", "ai model",
+        "ai influencer", "generate influencer",
+        "create model", "ai model",
         "virtual influencer"
     ]):
         return "generate_ai_image"
 
-    # ── Price ─────────────────────────────────────────────────
+    # Price
     elif any(w in t for w in [
         "price for", "cost for",
         "how much for", "charge for",
@@ -430,14 +406,14 @@ def detect_intent(text: str) -> str:
     ]):
         return "calculate_price"
 
-    # ── ROI ───────────────────────────────────────────────────
+    # ROI
     elif any(w in t for w in [
         "roi for", "return on investment",
         "calculate roi", "show roi"
     ]):
         return "calculate_roi"
 
-    # ── Save lead ─────────────────────────────────────────────
+    # Save lead
     elif any(w in t for w in [
         "save lead", "add lead",
         "save client", "add client",
@@ -445,41 +421,38 @@ def detect_intent(text: str) -> str:
     ]):
         return "save_lead"
 
-    # ── View leads ────────────────────────────────────────────
+    # View leads
     elif any(w in t for w in [
         "show my leads", "view leads",
         "my leads", "my pipeline",
-        "all leads", "lead database"
+        "all leads"
     ]):
         return "view_leads"
 
-    # ── Update lead ───────────────────────────────────────────
+    # Update lead
     elif any(w in t for w in [
         "update lead", "change status",
         "mark lead as"
     ]):
         return "update_lead_status"
 
-    # ── Write file ────────────────────────────────────────────
+    # Write file
     elif any(w in t for w in [
         "write proposal", "save proposal",
-        "save to file", "write to file",
-        "create file", "save file"
+        "save to file", "write to file"
     ]):
         return "write_file"
 
-    # ── Read file ─────────────────────────────────────────────
+    # Read file
     elif any(w in t for w in [
-        "read file", "open file",
-        "show file", "read my"
+        "read file", "open file", "show file"
     ]):
         return "read_file"
 
-    # ── WhatsApp link ─────────────────────────────────────────
+    # WhatsApp link
     elif any(w in t for w in [
         "whatsapp link", "wa.me",
-        "generate whatsapp",
-        "create whatsapp link"
+        "generate whatsapp"
     ]):
         return "generate_whatsapp_link"
 
@@ -506,14 +479,14 @@ def parse_auto_command(text: str) -> tuple:
         "real estate agents",
         "car dealers", "garages",
         "supermarkets", "shops",
-        "hvac companies", "solar installers",
-        "medical clinics", "banks",
+        "hvac companies",
+        "solar installers",
+        "medical clinics",
     ]
 
     countries = [
         "usa", "united states", "america",
         "kenya", "nigeria", "ghana",
-        "tanzania", "uganda", "rwanda",
         "south africa", "ethiopia",
         "uk", "australia", "canada",
         "india", "uae", "dubai",
@@ -521,13 +494,11 @@ def parse_auto_command(text: str) -> tuple:
     ]
 
     cities = [
-        "new york", "manhattan", "brooklyn",
+        "new york", "manhattan",
         "los angeles", "chicago", "miami",
         "houston", "dallas", "seattle",
         "boston", "atlanta", "san francisco",
-        "phoenix", "denver", "las vegas",
-        "nairobi", "mombasa", "kisumu",
-        "westlands", "karen", "kilimani",
+        "nairobi", "mombasa", "westlands",
         "lagos", "abuja", "accra",
         "johannesburg", "cape town",
         "london", "dubai", "sydney",
@@ -563,6 +534,8 @@ def handle_message(
     user_input: str,
     memory: Memory,
     config: dict,
+    all_tools: list,
+    all_functions: dict,
     voice_muted: bool = False
 ) -> bool:
     if not user_input:
@@ -570,7 +543,7 @@ def handle_message(
 
     cmd = user_input.lower().strip()
 
-    # ── Quit ──────────────────────────────────────────────────
+    # Quit
     if any(w in cmd for w in [
         "quit", "exit", "bye",
         "goodbye", "shut down", "offline"
@@ -580,20 +553,19 @@ def handle_message(
         jarvis_speak(bye)
         return False
 
-    # ── Clear ─────────────────────────────────────────────────
+    # Clear
     elif any(w in cmd for w in [
         "clear", "reset", "fresh start"
     ]):
         memory.clear()
-        msg = f"Memory cleared {USER_NAME}. What is the mission?"
+        msg = f"Cleared {USER_NAME}. What is the mission?"
         print(f"Jarvis: {msg}\n")
         jarvis_speak(msg)
         return True
 
-    # ── Wipe all memory ────────────────────────────────────────
+    # Wipe all memory
     elif any(w in cmd for w in [
-        "forget everything",
-        "wipe all memory",
+        "forget everything", "wipe all memory",
         "delete memory"
     ]):
         memory.clear()
@@ -604,7 +576,7 @@ def handle_message(
         jarvis_speak(msg)
         return True
 
-    # ── Show memory ────────────────────────────────────────────
+    # Show memory
     elif any(w in cmd for w in [
         "what do you remember",
         "show memory",
@@ -613,23 +585,29 @@ def handle_message(
         summary = get_memory_summary()
         if summary:
             print(f"\n{summary}\n")
-            jarvis_speak(f"Memory loaded {USER_NAME}. Check your screen.")
+            jarvis_speak(
+                f"Memory loaded {USER_NAME}. "
+                f"Check your screen."
+            )
         else:
-            msg = f"No memory yet {USER_NAME}. Tell me something important."
+            msg = (
+                f"No memory yet {USER_NAME}. "
+                f"Tell me something important."
+            )
             print(f"Jarvis: {msg}\n")
             jarvis_speak(msg)
         return True
 
-    # ── Leads ─────────────────────────────────────────────────
+    # Leads
     elif any(w in cmd for w in [
         "leads", "pipeline", "my leads"
     ]):
-        result = ALL_FUNCTIONS["view_leads"]()
+        result = all_functions["view_leads"]()
         print(result)
         jarvis_speak(f"Pipeline on screen {USER_NAME}.")
         return True
 
-    # ── Files ─────────────────────────────────────────────────
+    # Files
     elif any(w in cmd for w in [
         "my files", "saved files",
         "show files", "list files"
@@ -646,32 +624,34 @@ def handle_message(
                 size = os.path.getsize(f)
                 print(f"  {f} ({size} bytes)")
             print()
-            jarvis_speak(f"{len(files)} files on record {USER_NAME}.")
+            jarvis_speak(
+                f"{len(files)} files on record {USER_NAME}."
+            )
         else:
             msg = f"No files yet {USER_NAME}."
             print(f"{msg}\n")
             jarvis_speak(msg)
         return True
 
-    # ── Voices ────────────────────────────────────────────────
+    # Voices
     elif cmd == "voices":
         list_voices()
-        jarvis_speak("Check your screen for voices.")
+        jarvis_speak("Check screen for voices.")
         return True
 
-    # ── Set voice ─────────────────────────────────────────────
+    # Set voice
     elif cmd.startswith("setvoice "):
         voice_name = user_input.split(" ", 1)[1].strip()
         set_voice(voice_name)
         jarvis_speak(f"Voice updated {USER_NAME}.")
         return True
 
-    # ── Mute ──────────────────────────────────────────────────
+    # Mute
     elif cmd == "mute":
         print(f"Jarvis: Voice muted {USER_NAME}.\n")
         return True
 
-    # ── Help ──────────────────────────────────────────────────
+    # Help
     elif cmd == "help":
         print(f"""
 ====================================
@@ -694,11 +674,18 @@ COMMANDS:
   help                   This menu
 
 WEBSITE BUILDER:
-  "Build a website for [name] 
-   [type] in [city]"
-  Example:
-  "Build a website for Bright Smiles 
+  "Build a website for [Business Name]
+   [business type] in [City]"
+
+  Examples:
+  "Build a website for Bright Smiles
    dental clinic in Los Angeles"
+
+  "Build a website for Smith Law Group
+   law firm in New York"
+
+  "Build a website for The Capital Grille
+   restaurant in Boston"
 
 BUSINESS HUNTING:
   "Auto hunt law firms in New York USA"
@@ -708,51 +695,57 @@ BUSINESS HUNTING:
 PRICING:
   "Price for a law firm in New York"
 
-LEADS:
-  "Show my leads"
-  "Save lead: Name City Contact"
-
 AI IMAGES:
   "Generate AI influencer female
-   American fashion style New York"
+   American fashion New York"
+
+LEADS:
+  "Show my leads"
+  "Save lead: Name City Contact Value"
 
 JUST TALK:
   Ask Jarvis anything
-  He responds intelligently
 ====================================
         """)
         jarvis_speak(f"Help on screen {USER_NAME}.")
         return True
 
-    # ── Auto save facts ────────────────────────────────────────
+    # Auto save facts
     auto_save_facts(user_input)
 
-    # ── Detect intent ─────────────────────────────────────────
+    # Detect intent
     intent = detect_intent(user_input)
 
-    # ── Auto hunt ─────────────────────────────────────────────
+    # Auto hunt
     if intent == "auto":
         business, city, country = parse_auto_command(
             user_input
         )
-        print(f"\nJarvis: Hunting {business} in {city}...\n")
+        print(
+            f"\nJarvis: Hunting {business} "
+            f"in {city}...\n"
+        )
         jarvis_speak(
             f"Initiating hunt {USER_NAME}. "
             f"Target {business} in {city}."
         )
         result = auto_hunt(
-            business, city, country, config, memory
+            business, city, country,
+            config, memory, all_functions
         )
         print(f"\n{result}\n")
         return True
 
-    # ── Tool call ─────────────────────────────────────────────
+    # Tool call
     elif intent != "none":
         memory.add_user(user_input)
         memory.trim()
 
-        print(f"\nJarvis: ", end="", flush=True)
-        response = chat_with_tool(memory, config, intent)
+        print("Jarvis: ", end="", flush=True)
+        response = chat_with_tool(
+            memory, config, intent,
+            all_tools, all_functions
+        )
         print(f"{response}\n")
 
         if not voice_muted:
@@ -761,7 +754,7 @@ JUST TALK:
         memory.add_jarvis(response)
         return True
 
-    # ── Normal chat ───────────────────────────────────────────
+    # Normal chat
     else:
         memory.add_user(user_input)
         memory.trim()
@@ -781,6 +774,14 @@ JUST TALK:
 # ────────────────────────────────────────────────────────────────
 
 def main():
+    # Build combined tools INSIDE main
+    # so all tools are loaded first
+    ALL_TOOLS = TOOLS + WEB_TOOLS
+    ALL_FUNCTIONS = {
+        **TOOL_FUNCTIONS,
+        **WEB_TOOL_FUNCTIONS
+    }
+
     config = load_config()
     memory = Memory(config["agent"]["system_prompt"])
     voice_muted = False
@@ -824,7 +825,7 @@ def main():
                 f"(ENTER=voice | C=clap | type): "
             ).strip()
 
-            # ── Continuous voice ──────────────────────────────
+            # Continuous voice
             if choice == "":
                 msg = (
                     f"Listening {USER_NAME}. "
@@ -843,20 +844,21 @@ def main():
                         jarvis_speak(back)
                         return False
                     return handle_message(
-                        text, memory, config, voice_muted
+                        text, memory, config,
+                        ALL_TOOLS, ALL_FUNCTIONS,
+                        voice_muted
                     )
 
                 listen_continuous(
                     on_voice,
                     stop_words=[
-                        "stop", "stop listening",
-                        "quit", "exit", "bye"
+                        "stop", "quit", "exit"
                     ],
                     is_speaking_flag=is_speaking
                 )
                 continue
 
-            # ── Clap mode ─────────────────────────────────────
+            # Clap mode
             elif choice.lower() == "c":
                 msg = (
                     f"Clap mode active {USER_NAME}. "
@@ -871,7 +873,9 @@ def main():
                         clapped = wait_for_clap()
 
                         if clapped:
-                            wake = f"Yes {USER_NAME}. Listening."
+                            wake = (
+                                f"Yes {USER_NAME}. Listening."
+                            )
                             print(f"Jarvis: {wake}")
                             jarvis_speak(wake)
 
@@ -886,8 +890,9 @@ def main():
                                 ):
                                     return False
                                 return handle_message(
-                                    text, memory,
-                                    config, voice_muted
+                                    text, memory, config,
+                                    ALL_TOOLS, ALL_FUNCTIONS,
+                                    voice_muted
                                 )
 
                             listen_continuous(
@@ -909,22 +914,28 @@ def main():
                 jarvis_speak(msg)
                 continue
 
-            # ── Mute ──────────────────────────────────────────
+            # Mute
             elif choice.lower() == "mute":
                 voice_muted = True
-                print(f"Jarvis: Voice muted {USER_NAME}.\n")
+                print(
+                    f"Jarvis: Voice muted {USER_NAME}.\n"
+                )
                 continue
 
-            # ── Unmute ────────────────────────────────────────
+            # Unmute
             elif choice.lower() == "unmute":
                 voice_muted = False
-                jarvis_speak(f"Audio restored {USER_NAME}.")
+                jarvis_speak(
+                    f"Audio restored {USER_NAME}."
+                )
                 continue
 
-            # ── Text input ────────────────────────────────────
+            # Text input
             else:
                 keep_going = handle_message(
-                    choice, memory, config, voice_muted
+                    choice, memory, config,
+                    ALL_TOOLS, ALL_FUNCTIONS,
+                    voice_muted
                 )
                 if not keep_going:
                     break

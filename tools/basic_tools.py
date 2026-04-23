@@ -1,14 +1,7 @@
 import os
 import json
-import time
 import urllib.parse
 from datetime import datetime
-
-try:
-    import pywhatkit
-    WHATSAPP_AVAILABLE = True
-except:
-    WHATSAPP_AVAILABLE = False
 
 # ────────────────────────────────────────────────────────────────
 # TOOL FUNCTIONS
@@ -47,7 +40,6 @@ def calculate_price(
     business_type = business_type.lower().strip()
     size = size.lower().strip()
 
-    # ── USA Fixed $2000 pricing ───────────────────────────────
     if country in [
         "usa", "united states",
         "america", "us"
@@ -62,115 +54,49 @@ Size     : {size.title()}
 PACKAGES:
 ---------
 1. Starter    : $ 800
-   5 page website, mobile friendly,
-   contact form, Google Maps,
-   social media links
-
 2. Growth     : $ 2,000
-   Everything in Starter plus
-   WhatsApp button, lead capture,
-   blog section, basic SEO
-
 3. Automation : $ 4,000
-   Everything in Growth plus
-   online booking, payment integration,
-   customer database, monthly reports,
-   6 months support
 
 RECOMMENDED: Package 2 - Growth
 TARGET DEAL: $ 2,000
 """
 
-    # ── Other countries ───────────────────────────────────────
-    if country in ["uk", "united kingdom", "england"]:
-        symbol = "GBP"
-        base = 2500 if "london" in city else 1200
+    symbols = {
+        "uk": ("GBP", 2500),
+        "united kingdom": ("GBP", 2500),
+        "england": ("GBP", 2500),
+        "australia": ("AUD", 3000),
+        "aus": ("AUD", 3000),
+        "canada": ("CAD", 2500),
+        "ca": ("CAD", 2500),
+        "germany": ("EUR", 3000),
+        "deutschland": ("EUR", 3000),
+        "south africa": ("ZAR", 25000),
+        "sa": ("ZAR", 25000),
+        "nigeria": ("NGN", 800000),
+        "ng": ("NGN", 800000),
+        "kenya": ("Ksh", 3000),
+        "ke": ("Ksh", 3000),
+        "ghana": ("GHS", 5000),
+        "gh": ("GHS", 5000),
+        "india": ("INR", 80000),
+        "in": ("INR", 80000),
+        "uae": ("AED", 5000),
+        "dubai": ("AED", 5000),
+        "singapore": ("SGD", 3000),
+        "sg": ("SGD", 3000),
+        "france": ("EUR", 2500),
+        "fr": ("EUR", 2500),
+        "brazil": ("BRL", 5000),
+        "br": ("BRL", 5000),
+        "mexico": ("MXN", 15000),
+        "mx": ("MXN", 15000),
+    }
 
-    elif country in ["australia", "aus"]:
-        symbol = "AUD"
-        base = 3000 if any(
-            c in city for c in ["sydney", "melbourne"]
-        ) else 1500
-
-    elif country in ["canada", "ca"]:
-        symbol = "CAD"
-        base = 2500 if any(
-            c in city for c in ["toronto", "vancouver"]
-        ) else 1200
-
-    elif country in ["germany", "deutschland"]:
-        symbol = "EUR"
-        base = 3000 if any(
-            c in city for c in ["berlin", "munich"]
-        ) else 1500
-
-    elif country in ["south africa", "sa"]:
-        symbol = "ZAR"
-        base = 25000 if any(
-            c in city for c in [
-                "johannesburg", "cape town"
-            ]
-        ) else 12000
-
-    elif country in ["nigeria", "ng"]:
-        symbol = "NGN"
-        base = 800000 if any(
-            c in city for c in ["lagos", "abuja"]
-        ) else 400000
-
-    elif country in ["kenya", "ke"]:
-        symbol = "Ksh"
-        base = 3000 if any(
-            c in city for c in ["nairobi", "mombasa"]
-        ) else 2000
-
-    elif country in ["ghana", "gh"]:
-        symbol = "GHS"
-        base = 5000
-
-    elif country in ["tanzania", "tz"]:
-        symbol = "TZS"
-        base = 150000
-
-    elif country in ["uganda", "ug"]:
-        symbol = "UGX"
-        base = 1500000
-
-    elif country in ["rwanda", "rw"]:
-        symbol = "RWF"
-        base = 400000
-
-    elif country in ["india", "in"]:
-        symbol = "INR"
-        base = 80000 if any(
-            c in city for c in [
-                "mumbai", "delhi", "bangalore"
-            ]
-        ) else 40000
-
-    elif country in ["uae", "dubai", "emirates"]:
-        symbol = "AED"
-        base = 5000
-
-    elif country in ["singapore", "sg"]:
-        symbol = "SGD"
-        base = 3000
-
-    elif country in ["france", "fr"]:
-        symbol = "EUR"
-        base = 2500 if "paris" in city else 1500
-
-    elif country in ["brazil", "br"]:
-        symbol = "BRL"
-        base = 5000 if "sao paulo" in city else 3000
-
-    elif country in ["mexico", "mx"]:
-        symbol = "MXN"
-        base = 15000 if "mexico city" in city else 8000
-
+    if country in symbols:
+        symbol, base = symbols[country]
     else:
-        symbol = "$"
-        base = 2000
+        symbol, base = "$", 2000
 
     starter = int(base * 0.4)
     growth = base
@@ -210,19 +136,13 @@ def calculate_roi(
         "india": "INR", "in": "INR",
         "uae": "AED", "dubai": "AED",
         "ghana": "GHS", "gh": "GHS",
-        "tanzania": "TZS", "tz": "TZS",
-        "uganda": "UGX", "ug": "UGX",
-        "rwanda": "RWF", "rw": "RWF",
     }
     symbol = symbols.get(country, "$")
     monthly = revenue_per_client * expected_new_clients
     yearly = monthly * 12
-    roi = (
-        (yearly - website_cost) / website_cost
-    ) * 100
-    payback = (
-        website_cost / monthly if monthly > 0 else 0
-    )
+    roi = ((yearly - website_cost) / website_cost) * 100
+    payback = website_cost / monthly if monthly > 0 else 0
+
     return f"""
 ROI CALCULATION
 ===============
@@ -295,22 +215,10 @@ def view_leads(country: str = "all") -> str:
         if not leads:
             return "No leads found."
         new = [l for l in leads if l["status"] == "New"]
-        contacted = [
-            l for l in leads
-            if l["status"] == "Contacted"
-        ]
-        proposal = [
-            l for l in leads
-            if l["status"] == "Proposal Sent"
-        ]
-        closed = [
-            l for l in leads
-            if l["status"] == "Closed"
-        ]
-        lost = [
-            l for l in leads
-            if l["status"] == "Lost"
-        ]
+        contacted = [l for l in leads if l["status"] == "Contacted"]
+        proposal = [l for l in leads if l["status"] == "Proposal Sent"]
+        closed = [l for l in leads if l["status"] == "Closed"]
+        lost = [l for l in leads if l["status"] == "Lost"]
         result = f"""
 LEADS PIPELINE ({len(leads)} total)
 {'='*40}
@@ -350,15 +258,10 @@ def update_lead_status(
                 old = lead["status"]
                 lead["status"] = new_status
                 lead["last_updated"] = \
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M"
-                    )
+                    datetime.now().strftime("%Y-%m-%d %H:%M")
                 with open(leads_file, "w") as f:
                     json.dump(leads, f, indent=2)
-                return (
-                    f"Updated: {business_name}\n"
-                    f"{old} to {new_status}"
-                )
+                return f"Updated: {business_name}\n{old} to {new_status}"
         return f"Not found: {business_name}"
     except Exception as e:
         return f"Error: {e}"
@@ -375,9 +278,7 @@ def add_note(business_name: str, note: str) -> str:
                     business_name.lower():
                 lead["notes"] = note
                 lead["last_updated"] = \
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M"
-                    )
+                    datetime.now().strftime("%Y-%m-%d %H:%M")
                 with open(leads_file, "w") as f:
                     json.dump(leads, f, indent=2)
                 return f"Note added to {business_name}"
@@ -385,59 +286,14 @@ def add_note(business_name: str, note: str) -> str:
     except Exception as e:
         return f"Error: {e}"
 
-def auto_send_whatsapp(
-    phone_number: str,
-    message: str
-) -> str:
-    """
-    Auto send WhatsApp message using pywhatkit.
-    Requires WhatsApp Web to be open in browser.
-    """
-    if not WHATSAPP_AVAILABLE:
-        return (
-            "pywhatkit not installed. "
-            "Run: pip install pywhatkit"
-        )
-
-    try:
-        if not phone_number.startswith("+"):
-            return (
-                "Error: Phone must start with + "
-                "Example: +12125551234"
-            )
-
-        print(
-            f"🚀 Opening WhatsApp for {phone_number}..."
-        )
-        print(
-            "⚠️ DO NOT touch mouse or keyboard "
-            "for 25 seconds!"
-        )
-
-        pywhatkit.sendwhatmsg_instantly(
-            phone_no=phone_number,
-            message=message,
-            wait_time=20,
-            tab_close=True,
-            close_time=5
-        )
-
-        return f"Message sent to {phone_number}"
-
-    except Exception as e:
-        return f"WhatsApp error: {e}"
-
 def generate_whatsapp_link(
     phone_number: str,
     message: str
 ) -> str:
-    """Generate a click to chat WhatsApp link"""
     try:
-        clean_phone = "".join(
-            filter(str.isdigit, phone_number)
-        )
+        clean = "".join(filter(str.isdigit, phone_number))
         encoded = urllib.parse.quote(message)
-        link = f"https://wa.me/{clean_phone}?text={encoded}"
+        link = f"https://wa.me/{clean}?text={encoded}"
         return f"""
 WHATSAPP LINK READY
 ===================
@@ -454,6 +310,27 @@ HOW TO USE:
         """
     except Exception as e:
         return f"Error: {e}"
+
+def build_website(
+    business_name: str,
+    business_type: str,
+    location: str,
+    client_email: str = "",
+    client_phone: str = ""
+) -> str:
+    """Build and publish a website to Netlify"""
+    try:
+        from website_builder import build_website as _build
+        return _build(
+            business_name=business_name,
+            business_type=business_type,
+            location=location,
+            client_email=client_email,
+            client_phone=client_phone,
+            whatsapp="+254118240486"
+        )
+    except Exception as e:
+        return f"Website builder error: {e}"
 
 # ────────────────────────────────────────────────────────────────
 # TOOL DEFINITIONS
@@ -507,7 +384,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "calculate_price",
-            "description": "Calculate website price for a client",
+            "description": "Calculate website price for a client based on location and business type",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -527,20 +404,14 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "calculate_roi",
-            "description": "Calculate ROI to show client value",
+            "description": "Calculate ROI to show client how website makes money",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "country": {"type": "string"},
-                    "revenue_per_client": {
-                        "type": "integer"
-                    },
-                    "expected_new_clients": {
-                        "type": "integer"
-                    },
-                    "website_cost": {
-                        "type": "integer"
-                    }
+                    "revenue_per_client": {"type": "integer"},
+                    "expected_new_clients": {"type": "integer"},
+                    "website_cost": {"type": "integer"}
                 },
                 "required": [
                     "country",
@@ -555,7 +426,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "save_lead",
-            "description": "Save a potential client to database",
+            "description": "Save a potential client to leads database",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -577,7 +448,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "view_leads",
-            "description": "View all leads in pipeline",
+            "description": "View all leads in sales pipeline",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -591,16 +462,14 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "update_lead_status",
-            "description": "Update status of a lead",
+            "description": "Update the status of a lead",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "business_name": {"type": "string"},
                     "new_status": {"type": "string"}
                 },
-                "required": [
-                    "business_name", "new_status"
-                ]
+                "required": ["business_name", "new_status"]
             }
         }
     },
@@ -608,7 +477,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "add_note",
-            "description": "Add a note to a lead",
+            "description": "Add a note to a lead in database",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -616,27 +485,6 @@ TOOLS = [
                     "note": {"type": "string"}
                 },
                 "required": ["business_name", "note"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "auto_send_whatsapp",
-            "description": "Automatically send a WhatsApp message to a phone number",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "phone_number": {
-                        "type": "string",
-                        "description": "Phone with country code like +12125551234"
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Message to send"
-                    }
-                },
-                "required": ["phone_number", "message"]
             }
         }
     },
@@ -652,6 +500,43 @@ TOOLS = [
                     "message": {"type": "string"}
                 },
                 "required": ["phone_number", "message"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "build_website",
+            "description": "Build and publish a complete professional website for a client automatically. Use this when a client agrees to the deal or when asked to build a website.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_name": {
+                        "type": "string",
+                        "description": "Full name of the business"
+                    },
+                    "business_type": {
+                        "type": "string",
+                        "description": "Type of business like dental clinics law firms restaurants gyms"
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "City and state like Los Angeles or New York"
+                    },
+                    "client_email": {
+                        "type": "string",
+                        "description": "Client email address to send delivery"
+                    },
+                    "client_phone": {
+                        "type": "string",
+                        "description": "Client phone number"
+                    }
+                },
+                "required": [
+                    "business_name",
+                    "business_type",
+                    "location"
+                ]
             }
         }
     }
@@ -671,6 +556,6 @@ TOOL_FUNCTIONS = {
     "view_leads": view_leads,
     "update_lead_status": update_lead_status,
     "add_note": add_note,
-    "auto_send_whatsapp": auto_send_whatsapp,
     "generate_whatsapp_link": generate_whatsapp_link,
+    "build_website": build_website,
 }
