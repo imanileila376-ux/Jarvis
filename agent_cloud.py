@@ -3,6 +3,7 @@ import os
 import time
 import schedule
 import requests
+import resend
 from bs4 import BeautifulSoup
 from datetime import datetime
 from litellm import completion
@@ -12,12 +13,16 @@ from litellm import completion
 # ────────────────────────────────────────────────────────────────
 
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
-EMAIL_USER = os.environ.get("EMAIL_USER", "")
-EMAIL_PASS = os.environ.get("EMAIL_PASS", "")
-WHATSAPP = os.environ.get("WHATSAPP", "+254118240486")
+EMAIL_USER = os.environ.get(
+    "EMAIL_USER", "elizabethnzasi530@gmail.com"
+)
+RESEND_KEY = os.environ.get("RESEND_KEY", "")
+WHATSAPP = os.environ.get(
+    "WHATSAPP", "+254118240486"
+)
 USER_NAME = "Dan"
 COMPANY = "Digital Growth Agency"
-VERSION = "v5"
+VERSION = "v6"
 
 HEADERS = {
     "User-Agent": (
@@ -29,8 +34,6 @@ HEADERS = {
 
 # ────────────────────────────────────────────────────────────────
 # REAL USA BUSINESS DATABASE
-# Real businesses with real contact emails
-# Add more to expand your reach
 # ────────────────────────────────────────────────────────────────
 
 REAL_BUSINESSES = {
@@ -39,49 +42,41 @@ REAL_BUSINESSES = {
             "name": "Jacoby and Meyers Law",
             "email": "info@jacobyandmeyers.com",
             "location": "New York",
-            "website": "jacobyandmeyers.com"
         },
         {
             "name": "Cellino Law",
             "email": "info@cellinolaw.com",
             "location": "New York",
-            "website": "cellinolaw.com"
         },
         {
             "name": "The Barnes Firm",
             "email": "info@thebarnesfirm.com",
             "location": "New York",
-            "website": "thebarnesfirm.com"
         },
         {
             "name": "Block O Toole and Murphy",
             "email": "info@blockotoole.com",
             "location": "New York",
-            "website": "blockotoole.com"
         },
         {
             "name": "Sullivan and Cromwell",
             "email": "info@sullcrom.com",
             "location": "New York",
-            "website": "sullcrom.com"
         },
         {
             "name": "Skadden Arps Slate",
             "email": "info@skadden.com",
             "location": "New York",
-            "website": "skadden.com"
         },
         {
             "name": "Davis Polk and Wardwell",
             "email": "info@davispolk.com",
             "location": "New York",
-            "website": "davispolk.com"
         },
         {
             "name": "Cleary Gottlieb Steen",
             "email": "info@cgsh.com",
             "location": "New York",
-            "website": "cgsh.com"
         },
     ],
     "dental clinics": [
@@ -89,49 +84,41 @@ REAL_BUSINESSES = {
             "name": "Aspen Dental Los Angeles",
             "email": "info@aspendental.com",
             "location": "Los Angeles",
-            "website": "aspendental.com"
         },
         {
             "name": "Pacific Dental Services",
             "email": "info@pacificdentalservices.com",
             "location": "Los Angeles",
-            "website": "pacificdentalservices.com"
         },
         {
-            "name": "Western Dental Los Angeles",
+            "name": "Western Dental",
             "email": "info@westerndental.com",
             "location": "Los Angeles",
-            "website": "westerndental.com"
         },
         {
             "name": "LA Dental Center",
             "email": "contact@ladentalcenter.com",
             "location": "Los Angeles",
-            "website": "ladentalcenter.com"
         },
         {
-            "name": "Brite Dental LA",
+            "name": "Brite Dental",
             "email": "info@britedental.com",
             "location": "Los Angeles",
-            "website": "britedental.com"
         },
         {
-            "name": "Smile Generation LA",
+            "name": "Smile Generation",
             "email": "info@smilegeneration.com",
             "location": "Los Angeles",
-            "website": "smilegeneration.com"
-        },
-        {
-            "name": "Dentistry of Los Angeles",
-            "email": "info@dentistryofla.com",
-            "location": "Los Angeles",
-            "website": "dentistryofla.com"
         },
         {
             "name": "Beverly Hills Dental",
             "email": "info@beverlyhillsdental.com",
             "location": "Los Angeles",
-            "website": "beverlyhillsdental.com"
+        },
+        {
+            "name": "Premier Dental LA",
+            "email": "info@premierdentalla.com",
+            "location": "Los Angeles",
         },
     ],
     "real estate agents": [
@@ -139,49 +126,41 @@ REAL_BUSINESSES = {
             "name": "Keller Williams Chicago",
             "email": "info@kwchicago.com",
             "location": "Chicago",
-            "website": "kwchicago.com"
         },
         {
             "name": "Century 21 Chicago",
             "email": "info@century21chicago.com",
             "location": "Chicago",
-            "website": "century21chicago.com"
         },
         {
             "name": "Coldwell Banker Chicago",
             "email": "info@cbchicago.com",
             "location": "Chicago",
-            "website": "cbchicago.com"
         },
         {
-            "name": "Baird and Warner Chicago",
+            "name": "Baird and Warner",
             "email": "info@bairdwarner.com",
             "location": "Chicago",
-            "website": "bairdwarner.com"
         },
         {
             "name": "RE MAX Chicago",
             "email": "info@remaxchicago.com",
             "location": "Chicago",
-            "website": "remaxchicago.com"
-        },
-        {
-            "name": "Berkshire Hathaway Chicago",
-            "email": "info@bhhschicago.com",
-            "location": "Chicago",
-            "website": "bhhschicago.com"
         },
         {
             "name": "Compass Chicago",
             "email": "chicago@compass.com",
             "location": "Chicago",
-            "website": "compass.com"
         },
         {
             "name": "Dream Town Realty",
             "email": "info@dreamtown.com",
             "location": "Chicago",
-            "website": "dreamtown.com"
+        },
+        {
+            "name": "Berkshire Hathaway Chicago",
+            "email": "info@bhhschicago.com",
+            "location": "Chicago",
         },
     ],
     "medical clinics": [
@@ -189,49 +168,41 @@ REAL_BUSINESSES = {
             "name": "CareNow Houston",
             "email": "info@carenow.com",
             "location": "Houston",
-            "website": "carenow.com"
         },
         {
-            "name": "NextCare Urgent Care Houston",
+            "name": "NextCare Urgent Care",
             "email": "info@nextcare.com",
             "location": "Houston",
-            "website": "nextcare.com"
         },
         {
             "name": "AFC Urgent Care Houston",
             "email": "info@afcurgentcare.com",
             "location": "Houston",
-            "website": "afcurgentcare.com"
         },
         {
             "name": "Concentra Houston",
             "email": "info@concentra.com",
             "location": "Houston",
-            "website": "concentra.com"
         },
         {
-            "name": "Memorial Hermann Houston",
+            "name": "Memorial Hermann",
             "email": "info@memorialhermann.org",
             "location": "Houston",
-            "website": "memorialhermann.org"
         },
         {
             "name": "Houston Methodist",
             "email": "info@houstonmethodist.org",
             "location": "Houston",
-            "website": "houstonmethodist.org"
-        },
-        {
-            "name": "Texas Medical Center",
-            "email": "info@tmc.edu",
-            "location": "Houston",
-            "website": "tmc.edu"
         },
         {
             "name": "Kelsey Seybold Clinic",
             "email": "info@kelsey-seybold.com",
             "location": "Houston",
-            "website": "kelsey-seybold.com"
+        },
+        {
+            "name": "Texas Medical Center",
+            "email": "info@tmc.edu",
+            "location": "Houston",
         },
     ],
     "gyms": [
@@ -239,99 +210,83 @@ REAL_BUSINESSES = {
             "name": "Equinox Miami",
             "email": "miami@equinox.com",
             "location": "Miami",
-            "website": "equinox.com"
         },
         {
             "name": "LA Fitness Miami",
             "email": "info@lafitness.com",
             "location": "Miami",
-            "website": "lafitness.com"
         },
         {
             "name": "Planet Fitness Miami",
             "email": "info@planetfitness.com",
             "location": "Miami",
-            "website": "planetfitness.com"
         },
         {
             "name": "Gold's Gym Miami",
             "email": "miami@goldsgym.com",
             "location": "Miami",
-            "website": "goldsgym.com"
         },
         {
             "name": "Crunch Fitness Miami",
             "email": "info@crunch.com",
             "location": "Miami",
-            "website": "crunch.com"
         },
         {
             "name": "Barry's Bootcamp Miami",
             "email": "miami@barrys.com",
             "location": "Miami",
-            "website": "barrys.com"
-        },
-        {
-            "name": "SoulCycle Miami",
-            "email": "info@soul-cycle.com",
-            "location": "Miami",
-            "website": "soul-cycle.com"
         },
         {
             "name": "F45 Training Miami",
             "email": "info@f45training.com",
             "location": "Miami",
-            "website": "f45training.com"
+        },
+        {
+            "name": "SoulCycle Miami",
+            "email": "info@soul-cycle.com",
+            "location": "Miami",
         },
     ],
     "hvac companies": [
         {
-            "name": "One Hour Air Conditioning Dallas",
+            "name": "One Hour Air Dallas",
             "email": "info@onehourhvac.com",
             "location": "Dallas",
-            "website": "onehourhvac.com"
         },
         {
             "name": "Aire Serv Dallas",
             "email": "info@aireserv.com",
             "location": "Dallas",
-            "website": "aireserv.com"
         },
         {
             "name": "Service Experts Dallas",
             "email": "info@serviceexperts.com",
             "location": "Dallas",
-            "website": "serviceexperts.com"
         },
         {
             "name": "Comfort Systems Dallas",
             "email": "info@comfortsystems.com",
             "location": "Dallas",
-            "website": "comfortsystems.com"
         },
         {
-            "name": "Lennox International Dallas",
+            "name": "Lennox International",
             "email": "info@lennox.com",
             "location": "Dallas",
-            "website": "lennox.com"
         },
         {
             "name": "Trane Dallas",
             "email": "info@trane.com",
             "location": "Dallas",
-            "website": "trane.com"
         },
         {
             "name": "Carrier Dallas",
             "email": "info@carrier.com",
             "location": "Dallas",
-            "website": "carrier.com"
         },
         {
-            "name": "ABC Home and Commercial Dallas",
+            "name": "ABC Home Commercial",
             "email": "info@abchomeandcommercial.com",
             "location": "Dallas",
-            "website": "abchomeandcommercial.com"
         },
     ],
     "solar installers": [
@@ -339,49 +294,41 @@ REAL_BUSINESSES = {
             "name": "Sunrun Seattle",
             "email": "info@sunrun.com",
             "location": "Seattle",
-            "website": "sunrun.com"
         },
         {
             "name": "SunPower Seattle",
             "email": "info@sunpower.com",
             "location": "Seattle",
-            "website": "sunpower.com"
         },
         {
             "name": "Tesla Solar Seattle",
             "email": "solarcity@tesla.com",
             "location": "Seattle",
-            "website": "tesla.com"
         },
         {
             "name": "Vivint Solar Seattle",
             "email": "info@vivintsolar.com",
             "location": "Seattle",
-            "website": "vivintsolar.com"
         },
         {
             "name": "NW Wind and Solar",
             "email": "info@nwwindandsolar.com",
             "location": "Seattle",
-            "website": "nwwindandsolar.com"
         },
         {
             "name": "Puget Sound Solar",
             "email": "info@pugetsoundsolar.com",
             "location": "Seattle",
-            "website": "pugetsoundsolar.com"
         },
         {
-            "name": "Green Power Energy Seattle",
+            "name": "Green Power Energy",
             "email": "info@greenpowerenergy.com",
             "location": "Seattle",
-            "website": "greenpowerenergy.com"
         },
         {
             "name": "Solar Universe Seattle",
             "email": "info@solaruniverse.com",
             "location": "Seattle",
-            "website": "solaruniverse.com"
         },
     ],
     "restaurants": [
@@ -389,49 +336,41 @@ REAL_BUSINESSES = {
             "name": "Legal Sea Foods Boston",
             "email": "info@legalseafoods.com",
             "location": "Boston",
-            "website": "legalseafoods.com"
         },
         {
             "name": "The Capital Grille Boston",
             "email": "info@thecapitalgrille.com",
             "location": "Boston",
-            "website": "thecapitalgrille.com"
         },
         {
             "name": "Davios Boston",
             "email": "info@davios.com",
             "location": "Boston",
-            "website": "davios.com"
         },
         {
             "name": "Boston Chops",
             "email": "info@bostonchops.com",
             "location": "Boston",
-            "website": "bostonchops.com"
         },
         {
             "name": "Row 34 Boston",
             "email": "info@row34.com",
             "location": "Boston",
-            "website": "row34.com"
         },
         {
             "name": "Sarma Boston",
             "email": "info@sarmarestaurant.com",
             "location": "Boston",
-            "website": "sarmarestaurant.com"
         },
         {
             "name": "Toro Boston",
             "email": "info@toro-restaurant.com",
             "location": "Boston",
-            "website": "toro-restaurant.com"
         },
         {
             "name": "Waypoint Boston",
             "email": "info@waypointcambridge.com",
             "location": "Boston",
-            "website": "waypointcambridge.com"
         },
     ],
 }
@@ -486,13 +425,17 @@ def search_web(query: str) -> str:
             headers=HEADERS,
             timeout=15
         )
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(
+            response.text, "html.parser"
+        )
 
         results = []
         for result in soup.find_all(
             "div", class_="result"
         )[:8]:
-            title = result.find("a", class_="result__a")
+            title = result.find(
+                "a", class_="result__a"
+            )
             snippet = result.find(
                 "a", class_="result__snippet"
             )
@@ -529,10 +472,10 @@ def search_email(
                 {
                     "role": "system",
                     "content": (
-                        "Find the email address in this text. "
-                        "Return ONLY the email address. "
-                        "Example: info@business.com "
-                        "If no email return: none"
+                        "Find email address in this text. "
+                        "Return ONLY the email. "
+                        "Example: info@company.com "
+                        "If none found return: none"
                     )
                 },
                 {
@@ -578,7 +521,7 @@ def find_real_businesses(
     businesses = []
     config = load_config()
 
-    # Strategy 1: Real database first
+    # Strategy 1: Real database
     db_key = business_type.lower()
     if db_key in REAL_BUSINESSES:
         db_results = REAL_BUSINESSES[db_key]
@@ -590,13 +533,14 @@ def find_real_businesses(
         if location_matches:
             businesses = location_matches
             print(
-                f"  Database: {len(businesses)} found"
+                f"  Database: "
+                f"{len(businesses)} found"
             )
         else:
             businesses = db_results[:5]
             print(
-                f"  Database: {len(businesses)} "
-                f"(different location)"
+                f"  Database: "
+                f"{len(businesses)} found"
             )
 
     # Strategy 2: Web search for more
@@ -612,11 +556,10 @@ def find_real_businesses(
                 {
                     "role": "system",
                     "content": (
-                        "Extract business names and emails "
-                        "from this text. "
+                        "Extract business names and emails. "
                         "Return ONLY JSON: "
                         '[{"name":"...", "email":"..."}] '
-                        "Only JSON nothing else."
+                        "Only JSON."
                     )
                 },
                 {
@@ -635,7 +578,7 @@ def find_real_businesses(
                     clean = clean[start:end]
                 extra = json.loads(clean)
 
-                existing_names = [
+                existing = [
                     b["name"] for b in businesses
                 ]
 
@@ -646,7 +589,7 @@ def find_real_businesses(
                         if (
                             name and
                             len(name) > 3 and
-                            name not in existing_names
+                            name not in existing
                         ):
                             businesses.append({
                                 "name": name,
@@ -654,9 +597,7 @@ def find_real_businesses(
                                 "location": location
                             })
 
-                print(
-                    f"  Total: {len(businesses)}"
-                )
+                print(f"  Total: {len(businesses)}")
 
             except Exception as e:
                 print(f"  Parse error: {e}")
@@ -664,7 +605,7 @@ def find_real_businesses(
     except Exception as e:
         print(f"  Web error: {e}")
 
-    # Strategy 3: Fallback as last resort
+    # Strategy 3: Fallback
     if not businesses:
         print("  Using fallback...")
         fallback = [
@@ -705,8 +646,9 @@ def save_lead(
                 leads = json.load(f)
 
         for lead in leads:
-            if lead.get("business", "").lower() == \
-                    name.lower():
+            if lead.get(
+                "business", ""
+            ).lower() == name.lower():
                 return
 
         leads.append({
@@ -738,9 +680,8 @@ def view_leads() -> str:
             l for l in leads
             if l.get("status") == "Email Sent"
         ])
-        total = len(leads)
         return (
-            f"{total} total leads. "
+            f"{len(leads)} total leads. "
             f"{sent} emails sent."
         )
     except:
@@ -780,7 +721,7 @@ def log_email(
         print(f"Log error: {e}")
 
 # ────────────────────────────────────────────────────────────────
-# EMAIL SENDER
+# EMAIL SENDER - RESEND
 # ────────────────────────────────────────────────────────────────
 
 def send_email(
@@ -788,91 +729,97 @@ def send_email(
     business_name: str,
     pitch: str
 ) -> bool:
-    if not EMAIL_USER or not EMAIL_PASS:
+    """
+    Send email using Resend.
+    Free: 3000 emails per month.
+    Works perfectly on Railway.
+    """
+    if not RESEND_KEY:
         print(
-            "Email not configured. "
-            "Set EMAIL_USER and EMAIL_PASS "
-            "in Railway Variables."
+            "RESEND_KEY not set. "
+            "Add it to Railway Variables."
         )
         return False
 
     try:
-        import yagmail
+        resend.api_key = RESEND_KEY
 
-        yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
-
-        subject = (
-            f"Website Growth Proposal "
-            f"for {business_name}"
-        )
-
-        html = f"""
+        html_content = f"""
 <html>
-<body style="font-family:Arial,sans-serif;
-             max-width:600px;
-             margin:0 auto;
-             padding:20px;">
+<body style="font-family: Arial, sans-serif;
+             max-width: 600px;
+             margin: 0 auto;
+             padding: 20px;">
 
-<div style="background:#1a1a2e;
-            padding:20px;
-            border-radius:8px;
-            margin-bottom:20px;">
-    <h2 style="color:#ffffff;margin:0;">
-        {COMPANY}
-    </h2>
-    <p style="color:#cccccc;
-              margin:5px 0 0 0;
-              font-size:14px;">
-        We build websites that make money
-    </p>
-</div>
+    <div style="background: #1a1a2e;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 20px;">
+        <h2 style="color: #ffffff; margin: 0;">
+            {COMPANY}
+        </h2>
+        <p style="color: #cccccc;
+                  margin: 5px 0 0 0;
+                  font-size: 14px;">
+            We build websites that make money
+        </p>
+    </div>
 
-<div style="padding:20px;
-            background:#f9f9f9;
-            border-radius:8px;
-            line-height:1.8;
-            color:#333333;">
-    {pitch.replace(chr(10), "<br>")}
-</div>
+    <div style="padding: 20px;
+                background: #f9f9f9;
+                border-radius: 8px;
+                line-height: 1.8;
+                color: #333333;">
+        {pitch.replace(chr(10), "<br>")}
+    </div>
 
-<div style="margin-top:20px;
-            padding:15px;
-            border-top:2px solid #1a1a2e;
-            color:#333333;">
-    <p style="margin:0;">
-        <strong>Dan</strong><br>
-        Managing Partner<br>
-        {COMPANY}<br>
-        <br>
-        WhatsApp: {WHATSAPP}<br>
-        Email: {EMAIL_USER}
-    </p>
-</div>
+    <div style="margin-top: 20px;
+                padding: 15px;
+                border-top: 2px solid #1a1a2e;
+                color: #333333;">
+        <p style="margin: 0;">
+            <strong>Dan</strong><br>
+            Managing Partner<br>
+            {COMPANY}<br>
+            WhatsApp: {WHATSAPP}<br>
+            Email: {EMAIL_USER}
+        </p>
+    </div>
 
-<div style="margin-top:15px;
-            padding:10px;
-            background:#f0f0f0;
-            border-radius:5px;
-            font-size:12px;
-            color:#666;">
-    To unsubscribe reply with STOP.
-</div>
+    <div style="margin-top: 10px;
+                padding: 8px;
+                text-align: center;
+                font-size: 11px;
+                color: #999999;">
+        To unsubscribe reply STOP.
+    </div>
 
 </body>
 </html>
         """
 
-        yag.send(
-            to=to_email,
-            subject=subject,
-            contents=html
-        )
+        response = resend.Emails.send({
+            "from": "onboarding@resend.dev",
+            "to": to_email,
+            "subject": (
+                f"Website Growth Proposal "
+                f"for {business_name}"
+            ),
+            "html": html_content
+        })
 
-        print(f"Email sent to {to_email}")
-        return True
+        if response and response.get("id"):
+            print(
+                f"Email sent to {to_email} "
+                f"ID: {response['id']}"
+            )
+            return True
+        else:
+            print(f"Resend failed: {response}")
+            return False
 
     except Exception as e:
-        print(f"Email failed: {e}")
+        print(f"Email error: {e}")
         return False
 
 # ────────────────────────────────────────────────────────────────
@@ -897,8 +844,7 @@ def write_pitch(
                 f"Strong call to action. "
                 f"Under 120 words. "
                 f"Professional USA business tone. "
-                f"No bullet points. "
-                f"Use paragraphs."
+                f"Use paragraphs not bullet points."
             )
         },
         {
@@ -908,7 +854,7 @@ def write_pitch(
                 f"Business: {business_name}\n"
                 f"Type: {business_type}\n"
                 f"Location: {location}\n"
-                f"Our price: $2,000\n"
+                f"Price: $2,000\n"
                 f"Contact: WhatsApp {WHATSAPP} "
                 f"or {EMAIL_USER}"
             )
@@ -921,14 +867,14 @@ def write_pitch(
         pitch = (
             f"Hi {business_name} team,\n\n"
             f"I help {business_type} in {location} "
-            f"get more clients online.\n\n"
+            f"get more clients with a professional "
+            f"website.\n\n"
             f"Our Growth Package at $2,000 includes "
-            f"a professional website, WhatsApp integration, "
-            f"lead capture system, and SEO setup. "
+            f"a professional website, WhatsApp "
+            f"integration, lead capture, and SEO. "
             f"Most clients see ROI within 60 days.\n\n"
-            f"Interested? Contact us today.\n"
+            f"Interested? "
             f"WhatsApp: {WHATSAPP}\n\n"
-            f"Best regards,\n"
             f"Dan\n{COMPANY}"
         )
 
@@ -957,7 +903,6 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
     no_email_count = 0
 
     try:
-        # Step 1: Find businesses
         businesses = find_real_businesses(
             business_type,
             location,
@@ -982,17 +927,16 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             print(f"\nProcessing: {name}")
 
-            # Step 2: Search for email if missing
+            # Search for email if missing
             if not email or "@" not in email:
-                print(f"  Finding email...")
+                print(f"  Searching email...")
                 email = search_email(name, location)
-
                 if email:
                     print(f"  Found: {email}")
                 else:
                     print(f"  No email found")
 
-            # Step 3: Write pitch
+            # Write pitch
             pitch = write_pitch(
                 name,
                 business_type,
@@ -1000,7 +944,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                 config
             )
 
-            # Step 4: Send or save for manual
+            # Send or save
             if (
                 email and
                 "@" in email and
@@ -1019,7 +963,6 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                         location, country,
                         "Email Sent"
                     )
-                    print(f"  Saved as Email Sent")
                 else:
                     log_email(
                         name, email, "Failed"
@@ -1029,7 +972,6 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
                         location, country,
                         "Email Failed"
                     )
-                    print(f"  Saved as Failed")
             else:
                 no_email_count += 1
                 save_lead(
@@ -1042,7 +984,7 @@ Time:     {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
             time.sleep(3)
 
-        # Step 5: Save report
+        # Save report
         timestamp = datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
@@ -1087,9 +1029,7 @@ Report:      {filename}
 # ────────────────────────────────────────────────────────────────
 
 def morning_hunt(config: dict):
-    print(
-        "\nMORNING USA CAMPAIGN STARTING\n"
-    )
+    print("\nMORNING USA CAMPAIGN STARTING\n")
 
     targets = [
         ("law firms", "New York", "USA"),
@@ -1102,14 +1042,12 @@ def morning_hunt(config: dict):
         ("restaurants", "Boston", "USA"),
     ]
 
-    total_sent = 0
-
     for business, city, country in targets:
         print(f"\nHunting {business} in {city}...")
         auto_hunt(business, city, country, config)
         time.sleep(10)
 
-    print(f"\nMorning campaign complete.")
+    print("\nMorning campaign complete.")
 
 # ────────────────────────────────────────────────────────────────
 # EVENING REPORT
@@ -1139,15 +1077,15 @@ def evening_report(config: dict):
             "content": (
                 "You are Jarvis. "
                 "Give Dan a sharp evening report. "
-                "Under 80 words. Be motivating."
+                "Under 80 words. Motivating."
             )
         },
         {
             "role": "user",
             "content": (
-                f"Today stats:\n"
+                f"Stats for Dan:\n"
                 f"Leads: {leads}\n"
-                f"Emails sent: {email_count}\n"
+                f"Emails sent today: {email_count}\n"
                 f"Files: {len(files)}\n"
                 f"Give summary and top 3 priorities."
             )
@@ -1183,7 +1121,7 @@ def midday_followup(config: dict):
             "role": "user",
             "content": (
                 f"Dan leads: {leads}\n"
-                f"Give a quick follow up reminder."
+                f"Quick follow up reminder."
             )
         }
     ]
@@ -1231,6 +1169,7 @@ def main():
   Elite Emailer for {USER_NAME}
   Model: groq/llama-3.3-70b-versatile
   Market: USA PRIMARY
+  Email: Resend
   Mode: 24/7 Hunt and Email
 ====================================
     """)
@@ -1239,17 +1178,17 @@ def main():
         print("ERROR: GROQ_API_KEY not set!")
         return
 
-    if not EMAIL_USER or not EMAIL_PASS:
+    if not RESEND_KEY:
         print(
-            "WARNING: Email not configured.\n"
+            "WARNING: RESEND_KEY not set.\n"
             "Jarvis will hunt but NOT send emails.\n"
-            "Set EMAIL_USER and EMAIL_PASS "
-            "in Railway Variables."
+            "Get free key at resend.com\n"
+            "Add RESEND_KEY to Railway Variables."
         )
 
     config = load_config()
 
-    # Run startup hunt immediately
+    # Run startup hunt
     print("Running startup hunt...")
     auto_hunt(
         "law firms",

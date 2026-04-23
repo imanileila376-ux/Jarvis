@@ -4,4 +4,4 @@ requests
 beautifulsoup4
 schedule
 groq
-yagmail
+resend
