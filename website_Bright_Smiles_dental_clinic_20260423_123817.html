@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bright Smiles dental clinic - Los Angeles</title>
+<meta name="description" content="Bright Smiles dental clinic is a leading dental clinic in Los Angeles. Contact us today.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;color:#333333;background:#F0F8FF;overflow-x:hidden;}
+nav{position:fixed;top:0;width:100%;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);padding:15px 5%;display:flex;justify-content:space-between;align-items:center;z-index:1000;box-shadow:0 2px 20px rgba(0,0,0,0.1);}
+.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#0077B6;}
+.nav-links{display:flex;gap:25px;list-style:none;}
+.nav-links a{text-decoration:none;color:#333333;font-weight:500;transition:color 0.3s;}
+.nav-links a:hover{color:#0077B6;}
+.nav-cta{background:#0077B6;color:white!important;padding:10px 20px;border-radius:25px;font-weight:600!important;}
+.hero{min-height:100vh;background:linear-gradient(135deg,#0077B6 0%,#00B4D8 100%);display:flex;align-items:center;padding:100px 5% 60px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:600px;height:600px;background:rgba(255,255,255,0.05);border-radius:50%;}
+.hero-content{max-width:650px;position:relative;z-index:1;}
+.hero-badge{display:inline-block;background:rgba(255,255,255,0.2);color:white;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:500;margin-bottom:20px;border:1px solid rgba(255,255,255,0.3);}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(32px,5vw,60px);color:white;line-height:1.2;margin-bottom:20px;}
+.hero p{font-size:17px;color:rgba(255,255,255,0.85);line-height:1.7;margin-bottom:35px;}
+.hero-buttons{display:flex;gap:15px;flex-wrap:wrap;}
+.btn-primary{background:white;color:#0077B6;padding:14px 28px;border-radius:30px;font-size:15px;font-weight:700;text-decoration:none;transition:transform 0.3s,box-shadow 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,0.3);}
+.btn-secondary{background:transparent;color:white;padding:14px 28px;border-radius:30px;font-size:15px;font-weight:600;text-decoration:none;border:2px solid rgba(255,255,255,0.6);transition:all 0.3s;}
+.btn-secondary:hover{background:rgba(255,255,255,0.1);}
+.stats{background:white;padding:35px 5%;display:flex;justify-content:center;gap:60px;flex-wrap:wrap;box-shadow:0 4px 30px rgba(0,0,0,0.08);}
+.stat-item{text-align:center;}
+.stat-number{font-size:34px;font-weight:800;color:#0077B6;}
+.stat-label{font-size:13px;color:#666;margin-top:4px;}
+section{padding:80px 5%;}
+.section-header{text-align:center;margin-bottom:50px;}
+.section-badge{display:inline-block;background:#00B4D825;color:#0077B6;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;}
+.section-header h2{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);color:#1a1a1a;margin-bottom:12px;}
+.section-header p{font-size:16px;color:#666;max-width:600px;margin:0 auto;line-height:1.7;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:25px;max-width:1200px;margin:0 auto;}
+.card{background:white;padding:28px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06);transition:transform 0.3s,box-shadow 0.3s;border:1px solid #f0f0f0;}
+.card:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,0.12);}
+.card-icon{font-size:36px;margin-bottom:14px;}
+.card h3{font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:8px;}
+.card p{color:#666;line-height:1.6;font-size:14px;}
+.why-us{background:linear-gradient(135deg,#0077B608,#00B4D812);}
+.benefits{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:1000px;margin:0 auto;}
+.benefit{text-align:center;padding:22px;background:white;border-radius:12px;box-shadow:0 2px 15px rgba(0,0,0,0.05);}
+.benefit-icon{font-size:32px;margin-bottom:10px;}
+.benefit h3{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:6px;}
+.benefit p{font-size:13px;color:#666;line-height:1.5;}
+.testimonials{background:#0077B6;}
+.testimonials .section-header h2{color:white;}
+.testimonials .section-header p{color:rgba(255,255,255,0.7);}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:1000px;margin:0 auto;}
+.tcard{background:rgba(255,255,255,0.1);padding:22px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);}
+.stars{color:#FFD700;font-size:18px;margin-bottom:10px;}
+.ttext{color:rgba(255,255,255,0.9);font-style:italic;line-height:1.7;margin-bottom:12px;font-size:14px;}
+.tauthor{color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;}
+.contact-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:50px;max-width:1000px;margin:0 auto;align-items:start;}
+.contact-info h3{font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:18px;}
+.contact-item{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.contact-icon{font-size:20px;width:42px;height:42px;background:#0077B615;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.contact-text{color:#333;font-size:14px;}
+.contact-form{background:white;padding:32px;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.1);}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-weight:600;margin-bottom:5px;color:#333;font-size:13px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:11px 15px;border:2px solid #e0e0e0;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;transition:border-color 0.3s;outline:none;background:#fafafa;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:#0077B6;background:white;}
+.form-group textarea{height:100px;resize:vertical;}
+.btn-submit{width:100%;background:#0077B6;color:white;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.3s;}
+.btn-submit:hover{background:#00B4D8;transform:translateY(-1px);}
+footer{background:#1a1a1a;color:white;padding:40px 5%;text-align:center;}
+.footer-logo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#00B4D8;margin-bottom:8px;}
+.footer-links{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin:15px 0;}
+.footer-links a{color:#aaa;text-decoration:none;transition:color 0.3s;font-size:13px;}
+.footer-links a:hover{color:#00B4D8;}
+.footer-bottom{color:#555;font-size:12px;margin-top:15px;padding-top:15px;border-top:1px solid #333;}
+.wa-btn{position:fixed;bottom:25px;right:25px;background:#25D366;color:white;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.4);z-index:999;animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,211,102,0.4);}70%{box-shadow:0 0 0 15px rgba(37,211,102,0);}100%{box-shadow:0 0 0 0 rgba(37,211,102,0);}}
+.wa-btn:hover{transform:scale(1.1);}
+@media(max-width:768px){.nav-links{display:none;}.stats{gap:25px;}.contact-wrapper{grid-template-columns:1fr;}.hero-buttons{flex-direction:column;}}
+</style>
+</head>
+<body>
+
+<nav>
+<div class="logo">Bright Smiles dental clinic</div>
+<ul class="nav-links">
+<li><a href="#services">Services</a></li>
+<li><a href="#about">About</a></li>
+<li><a href="#reviews">Reviews</a></li>
+<li><a href="#contact" class="nav-cta">Contact Us</a></li>
+</ul>
+</nav>
+
+<section class="hero">
+<div class="hero-content">
+<div class="hero-badge">
+⭐ Top Rated Dental Clinic in Los Angeles
+</div>
+<h1>Welcome to Bright Smiles dental clinic</h1>
+<p>
+Bright Smiles dental clinic delivers exceptional service
+to clients across Los Angeles.
+Trusted by hundreds of satisfied customers.
+</p>
+<div class="hero-buttons">
+<a href="#contact" class="btn-primary">Contact Us →</a>
+<a href="tel:+254118240486" class="btn-secondary">
+📞 Call Us Now
+</a>
+</div>
+</div>
+</section>
+
+<div class="stats">
+<div class="stat-item">
+<div class="stat-number">500+</div>
+<div class="stat-label">Happy Clients</div>
+</div>
+<div class="stat-item">
+<div class="stat-number">15+</div>
+<div class="stat-label">Years Experience</div>
+</div>
+<div class="stat-item">
+<div class="stat-number">4.9⭐</div>
+<div class="stat-label">Average Rating</div>
+</div>
+<div class="stat-item">
+<div class="stat-number">100%</div>
+<div class="stat-label">Satisfaction</div>
+</div>
+</div>
+
+<section id="services">
+<div class="section-header">
+<div class="section-badge">What We Offer</div>
+<h2>Our Services</h2>
+<p>
+Comprehensive solutions tailored
+to your specific needs
+</p>
+</div>
+<div class="grid">
+        <div class="card">
+            <div class="card-icon">🩺</div>
+            <h3>General Medicine</h3>
+            <p>Comprehensive healthcare for all ages</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">🚨</div>
+            <h3>Urgent Care</h3>
+            <p>Walk in care without the ER wait</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">💉</div>
+            <h3>Preventive Care</h3>
+            <p>Vaccinations and health screenings</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">🧬</div>
+            <h3>Lab Testing</h3>
+            <p>Fast accurate diagnostic testing</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">❤️</div>
+            <h3>Chronic Disease</h3>
+            <p>Management for diabetes hypertension</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">🌿</div>
+            <h3>Telehealth</h3>
+            <p>See a doctor from home</p>
+        </div></div>
+</section>
+
+<section id="about" class="why-us">
+<div class="section-header">
+<div class="section-badge">Why Us</div>
+<h2>Why Choose Bright Smiles dental clinic</h2>
+<p>
+We are committed to providing
+the highest quality service
+</p>
+</div>
+<div class="benefits">
+<div class="benefit">
+<div class="benefit-icon">🏆</div>
+<h3>Award Winning</h3>
+<p>Recognized as the best in Los Angeles</p>
+</div>
+<div class="benefit">
+<div class="benefit-icon">⚡</div>
+<h3>Fast Service</h3>
+<p>Quick turnaround without compromising quality</p>
+</div>
+<div class="benefit">
+<div class="benefit-icon">🛡️</div>
+<h3>Guaranteed</h3>
+<p>100% satisfaction guarantee on all services</p>
+</div>
+<div class="benefit">
+<div class="benefit-icon">💎</div>
+<h3>Premium Quality</h3>
+<p>Only the best for our valued clients</p>
+</div>
+</div>
+</section>
+
+<section id="reviews" class="testimonials">
+<div class="section-header">
+<div class="section-badge"
+     style="background:rgba(255,255,255,0.2);
+            color:white;">
+Client Reviews
+</div>
+<h2>What Our Clients Say</h2>
+<p>Real reviews from real satisfied clients</p>
+</div>
+<div class="tgrid">
+<div class="tcard">
+<div class="stars">⭐⭐⭐⭐⭐</div>
+<p class="ttext">
+"Absolutely exceptional service!
+The team at Bright Smiles dental clinic exceeded
+all my expectations. Highly recommend
+to anyone in Los Angeles!"
+</p>
+<div class="tauthor">— Sarah M., Los Angeles</div>
+</div>
+<div class="tcard">
+<div class="stars">⭐⭐⭐⭐⭐</div>
+<p class="ttext">
+"Professional efficient and truly
+outstanding. I have been a client
+for 3 years and will never go
+anywhere else. The best!"
+</p>
+<div class="tauthor">— James K., Los Angeles</div>
+</div>
+<div class="tcard">
+<div class="stars">⭐⭐⭐⭐⭐</div>
+<p class="ttext">
+"I cannot recommend Bright Smiles dental clinic
+enough. From the moment I walked in
+I felt valued and well taken care of.
+Simply the best!"
+</p>
+<div class="tauthor">— Maria L., Los Angeles</div>
+</div>
+</div>
+</section>
+
+<section id="contact">
+<div class="section-header">
+<div class="section-badge">Get In Touch</div>
+<h2>Contact Bright Smiles dental clinic</h2>
+<p>We are here to help. Reach out today.</p>
+</div>
+<div class="contact-wrapper">
+<div class="contact-info">
+<h3>Let's Talk</h3>
+<div class="contact-item">
+<div class="contact-icon">📍</div>
+<div class="contact-text">
+Los Angeles, United States
+</div>
+</div>
+<div class="contact-item">
+<div class="contact-icon">📞</div>
+<div class="contact-text">
++254118240486
+</div>
+</div>
+<div class="contact-item">
+<div class="contact-icon">📧</div>
+<div class="contact-text">
+elizabethnzasi530@gmail.com
+</div>
+</div>
+<div class="contact-item">
+<div class="contact-icon">🕐</div>
+<div class="contact-text">
+Mon-Fri: 9AM-6PM<br>
+Sat: 9AM-4PM<br>
+Sun: Closed
+</div>
+</div>
+<br>
+<a href="https://wa.me/254118240486"
+   style="display:inline-block;
+          background:#25D366;
+          color:white;
+          padding:12px 22px;
+          border-radius:25px;
+          text-decoration:none;
+          font-weight:600;
+          font-size:14px;">
+💬 WhatsApp Us Now
+</a>
+</div>
+<div class="contact-form">
+<form onsubmit="handleSubmit(event)">
+<div class="form-group">
+<label>Your Name *</label>
+<input type="text"
+       placeholder="John Smith"
+       required>
+</div>
+<div class="form-group">
+<label>Email Address *</label>
+<input type="email"
+       placeholder="john@example.com"
+       required>
+</div>
+<div class="form-group">
+<label>Phone Number</label>
+<input type="tel"
+       placeholder="+1 (555) 000-0000">
+</div>
+<div class="form-group">
+<label>Service Needed</label>
+<select>
+<option>Select a service</option>
+<option>General Medicine</option><option>Urgent Care</option><option>Preventive Care</option><option>Lab Testing</option><option>Chronic Disease</option><option>Telehealth</option>
+</select>
+</div>
+<div class="form-group">
+<label>Message</label>
+<textarea
+  placeholder="Tell us how we can help...">
+</textarea>
+</div>
+<button type="submit" class="btn-submit">
+Contact Us →
+</button>
+</form>
+</div>
+</div>
+</section>
+
+<footer>
+<div class="footer-logo">Bright Smiles dental clinic</div>
+<div style="color:#aaa;margin-bottom:15px;">
+Serving Los Angeles with Excellence
+</div>
+<div class="footer-links">
+<a href="#services">Services</a>
+<a href="#about">About</a>
+<a href="#reviews">Reviews</a>
+<a href="#contact">Contact</a>
+<a href="https://wa.me/254118240486">WhatsApp</a>
+</div>
+<div class="footer-bottom">
+© 2026 Bright Smiles dental clinic.
+All rights reserved.
+Built by Digital Growth Agency.
+</div>
+</footer>
+
+<a href="https://wa.me/254118240486"
+   class="wa-btn"
+   target="_blank">💬</a>
+
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+a.addEventListener('click',function(e){
+e.preventDefault();
+const t=document.querySelector(
+    this.getAttribute('href')
+);
+if(t)t.scrollIntoView({
+    behavior:'smooth',
+    block:'start'
+});
+});
+});
+
+function handleSubmit(e){
+e.preventDefault();
+const btn=e.target.querySelector('.btn-submit');
+btn.textContent='✅ Message Sent!';
+btn.style.background='#28a745';
+setTimeout(()=>{
+    btn.textContent='Contact Us →';
+    btn.style.background='#0077B6';
+    e.target.reset();
+},3000);
+}
+
+window.addEventListener('scroll',()=>{
+const nav=document.querySelector('nav');
+nav.style.boxShadow=window.scrollY>50
+    ?'0 4px 30px rgba(0,0,0,0.15)'
+    :'0 2px 20px rgba(0,0,0,0.1)';
+});
+</script>
+</body>
+</html>
