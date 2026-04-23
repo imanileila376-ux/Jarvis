@@ -73,3 +73,5 @@ agent:
     - Target $2000 deals in USA
     - Show ROI in every pitch
     - Sound like a top closer
+netlify:
+  token: "nfp_G6RWTF39TyYmAdeQkhoX1LRpTjVJ4idBaf53"
